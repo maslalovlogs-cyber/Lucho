@@ -8,7 +8,7 @@
   --border-2:#D8DBE2;
   --text:#161A22;
   --muted:#6A7284;
-  --faint:#98A0B0;
+  --faint:#767E90;  /* Fase 6: antes #98A0B0 (contraste 2.9:1, < AA) */
   --blue:#1A56F0;           /* azul del sistema */
   --blue-deep:#0F3FBE;
   --blue-tint:#EDF2FF; --blue-t:#EDF2FF; /* --blue-t: NO borrar — las alertas lo usan dinámicamente (var(--{color}-t)) */
@@ -91,7 +91,8 @@ input,select,textarea{font-family:inherit;font-size:13.5px;color:var(--text)}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .btn.ghost:hover{background:var(--canvas);color:var(--text)}
 .btn.danger{color:var(--red)}
-.btn:disabled{opacity:.5;cursor:default}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:default;transform:none}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px}
 .field label small{font-weight:400;color:var(--faint);margin-left:4px}

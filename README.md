@@ -61,4 +61,5 @@ La prueba de humo verifica: render de las 10 pantallas, creación de cliente, **
 | 3. Corrección de errores (G3–G6, M1–M8 de la auditoría) | ✅ |
 | 4. Refactorización (duplicaciones, código muerto) | ✅ |
 | 5. Optimización IA (structured outputs, lotes, prompt caching) | ✅ |
-| 6–10. UX/UI · Rendimiento · Seguridad · Documentación · Pruebas | pendientes |
+| 6. UX/UI y accesibilidad | ✅ |
+| 7–10. Rendimiento · Seguridad · Documentación · Pruebas | pendientes |

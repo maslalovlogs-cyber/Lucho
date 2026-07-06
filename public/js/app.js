@@ -48,7 +48,7 @@ const App = {
       grupos[g].forEach(id => {
         const r = this.rutas.find(x => x.id === id);
         h += '<button data-go="' + id + '" class="' + (this.actual === id ? 'on' : '') + '">' +
-          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="' + r.icon + '"/></svg>' +
+          '<svg aria-hidden="true" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="' + r.icon + '"/></svg>' +
           r.label + (this.actual === id ? '<span class="dot"></span>' : '') + '</button>';
       });
     });

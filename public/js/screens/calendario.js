@@ -97,7 +97,7 @@ const S_Cal = {
     });
     body.querySelectorAll('[data-mov]').forEach(b => b.onclick = () => {
       const it = c.calendario.find(x => x.id === b.dataset.mov);
-      UI.modal('Mover pieza', '<div class="field"><label>Nueva fecha</label><input type="date" id="mvF" value="' + it.fecha + '"></div>' +
+      UI.modal('Mover pieza', '<div class="field"><label for="mvF">Nueva fecha</label><input type="date" id="mvF" value="' + it.fecha + '"></div>' +
         '<button class="btn pri" id="mvOk" style="width:100%">Mover</button>', () => {
         document.getElementById('mvOk').onclick = () => {
           it.fecha = document.getElementById('mvF').value || it.fecha;

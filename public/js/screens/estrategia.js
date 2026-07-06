@@ -28,7 +28,7 @@ const S_Estrategia = {
       const total = p * 6;
       const nivel = nivelPresupuesto(p).etiqueta;
       html += '<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Presupuesto publicitario del semestre</h3><span class="hint">distribución fija del método · nivel ' + nivel + '</span></div>' +
-        '<div class="card-b"><table class="tb"><tr><th>Mes</th>' + [1,2,3,4,5,6].map(m => '<th>M' + m + '</th>').join('') + '<th>Total</th></tr>' +
+        '<div class="card-b"><table class="tb"><tr><th scope="col">Mes</th>' + [1,2,3,4,5,6].map(m => '<th scope="col">M' + m + '</th>').join('') + '<th scope="col">Total</th></tr>' +
         '<tr><td>% del semestre</td>' + DIST_SEMESTRAL.map(x => '<td class="num">' + x + '%</td>').join('') + '<td class="num">100%</td></tr>' +
         '<tr><td>Inversión</td>' + DIST_SEMESTRAL.map(x => '<td class="num">' + UI.fmtMoney(total * x / 100) + '</td>').join('') + '<td class="num"><b>' + UI.fmtMoney(total) + '</b></td></tr></table>' +
         '<p style="font-size:12px;color:var(--muted);margin-top:10px">Regla del método: la pauta nunca rescata contenido débil — amplifica piezas con ICG ≥ 1.2 ya validadas orgánicamente.</p></div></div>';
@@ -48,7 +48,7 @@ const S_Estrategia = {
           '<div class="grid2"><div><b style="font-size:12.5px">Objetivos</b>' + UI.ul(d.objetivos) + '</div>' +
           '<div><b style="font-size:12.5px">KPI de la etapa</b>' + UI.ul(d.kpi) + '</div></div>';
         if (d.cronograma && d.cronograma.length){
-          html += '<div class="fs-title">Cronograma</div><table class="tb"><tr><th style="width:120px">Periodo</th><th>Foco</th><th>Acciones clave</th></tr>' +
+          html += '<div class="fs-title">Cronograma</div><table class="tb"><tr><th scope="col" style="width:120px">Periodo</th><th scope="col">Foco</th><th scope="col">Acciones clave</th></tr>' +
             d.cronograma.map(r => '<tr><td><b>' + UI.esc(r.periodo) + '</b></td><td>' + UI.esc(r.foco) + '</td><td>' + UI.esc((r.acciones||[]).join(' · ')) + '</td></tr>').join('') + '</table>';
         }
         if (d.tareas && d.tareas.length){

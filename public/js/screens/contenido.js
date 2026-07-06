@@ -21,10 +21,10 @@ const S_Contenido = {
     if (!c.diagnostico) html += '<div class="warn">Sin diagnóstico, la IA no conoce los pilares ni la plataforma primaria. <b>Recomendado: genera el diagnóstico primero.</b></div>';
 
     html += '<div class="card" style="margin-bottom:18px"><div class="card-b"><div class="fgrid" style="grid-template-columns:1.2fr 1.2fr 1fr .7fr auto;align-items:end">' +
-      '<div class="field"><label>Pilar</label><select id="gPilar"><option>Automático (mix de la etapa)</option>' + pilares.map(p => '<option>' + UI.esc(p) + '</option>').join('') + '</select></div>' +
-      '<div class="field"><label>Formato</label><select id="gFmt">' + this.FORMATOS.map(f => '<option>' + UI.esc(f) + '</option>').join('') + '</select></div>' +
-      '<div class="field"><label>Plataforma</label><select id="gPlat"><option>La primaria del cliente</option><option>Instagram</option><option>TikTok</option><option>Facebook</option></select></div>' +
-      '<div class="field"><label>Piezas</label><select id="gN"><option>2</option><option>3</option></select></div>' +
+      '<div class="field"><label for="gPilar">Pilar</label><select id="gPilar"><option>Automático (mix de la etapa)</option>' + pilares.map(p => '<option>' + UI.esc(p) + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label for="gFmt">Formato</label><select id="gFmt">' + this.FORMATOS.map(f => '<option>' + UI.esc(f) + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label for="gPlat">Plataforma</label><select id="gPlat"><option>La primaria del cliente</option><option>Instagram</option><option>TikTok</option><option>Facebook</option></select></div>' +
+      '<div class="field"><label for="gN">Piezas</label><select id="gN"><option>2</option><option>3</option></select></div>' +
       '<div class="field"><button class="btn pri" id="bGenC" style="width:100%">Generar ideas</button></div>' +
       '</div><div id="cProg"></div>' +
       '<p style="font-size:11.5px;color:var(--faint)">El generador respeta el mix de la etapa actual (mes ' + c.mes + ' → Etapa ' + Store.etapaDe(c.mes) + '), la biblioteca de formatos del método y las prácticas prohibidas. No repite ideas ya generadas (' + c.historial.length + ' en el historial).</p>' +
@@ -39,7 +39,12 @@ const S_Contenido = {
     document.getElementById('bGenC').onclick = () => this.generar(c);
     el.querySelectorAll('[data-prog]').forEach(b => b.onclick = () => this.programar(c, b.dataset.prog));
     el.querySelectorAll('[data-delc]').forEach(b => b.onclick = () => {
-      c.contenidos = c.contenidos.filter(x => x.id !== b.dataset.delc); Store.save(); App.refresh();
+      const it = c.contenidos.find(x => x.id === b.dataset.delc);
+      UI.confirmar('Eliminar pieza',
+        'Vas a eliminar <b>' + UI.esc(it ? it.titulo : '') + '</b> de la biblioteca (con su gancho y guion). Esta acción no se puede deshacer.',
+        'Eliminar', () => {
+          c.contenidos = c.contenidos.filter(x => x.id !== b.dataset.delc); Store.save(); App.refresh();
+        });
     });
   },
   cardPieza(it){
@@ -91,7 +96,7 @@ const S_Contenido = {
   programar(c, id){
     const it = c.contenidos.find(x => x.id === id); if (!it) return;
     const hoy = UI.hoyISO(); // G5: fecha local, no UTC
-    UI.modal('Programar pieza', '<div class="field"><label>Fecha de publicación</label><input type="date" id="pFecha" value="' + hoy + '"></div>' +
+    UI.modal('Programar pieza', '<div class="field"><label for="pFecha">Fecha de publicación</label><input type="date" id="pFecha" value="' + hoy + '"></div>' +
       '<button class="btn pri" id="pOk" style="width:100%">Agregar al calendario</button>', () => {
       document.getElementById('pOk').onclick = () => {
         c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: document.getElementById('pFecha').value, publicado: false });

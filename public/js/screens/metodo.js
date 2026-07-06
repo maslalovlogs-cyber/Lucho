@@ -16,15 +16,15 @@ const S_Metodo = {
     html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Módulos de actualización</h3><span class="hint">se inyectan en todas las llamadas de IA; el más reciente manda</span></div><div class="card-b">';
     const mods = Store.data.modules || [];
     if (mods.length){
-      html += '<table class="tb" style="margin-bottom:14px"><tr><th>Módulo</th><th>Fecha</th><th>Reglas</th><th></th></tr>' +
+      html += '<table class="tb" style="margin-bottom:14px"><tr><th scope="col">Módulo</th><th scope="col">Fecha</th><th scope="col">Reglas</th><th scope="col"></th></tr>' +
         mods.map(m => '<tr><td><b>' + UI.esc(m.nombre) + '</b></td><td class="num">' + UI.esc(m.fecha) + '</td><td style="font-size:12px;color:var(--muted)">' + UI.esc((m.reglas||'').slice(0,140)) + ((m.reglas||'').length > 140 ? '…' : '') + '</td>' +
           '<td style="white-space:nowrap"><button class="btn sm" data-tog="' + m.id + '">' + (m.activo === false ? 'Activar' : 'Pausar') + '</button> <button class="btn sm ghost danger" data-delmod="' + m.id + '">✕</button></td></tr>').join('') + '</table>';
     } else {
       html += '<p style="color:var(--faint);font-size:13px;margin-bottom:14px">Sin módulos. Ejemplo: "TikTok Shop — los videos con producto etiquetado entran a superficies de compra; CTA directo al carrito; comisión X%…"</p>';
     }
     html += '<div class="fgrid" style="grid-template-columns:1fr 2fr auto;align-items:end">' +
-      '<div class="field"><label>Nombre del módulo</label><input id="modNom" placeholder="p. ej. TikTok Shop · Q3 2026"></div>' +
-      '<div class="field"><label>Reglas nuevas</label><input id="modReg" placeholder="qué cambia, qué se prioriza, qué se prohíbe…"></div>' +
+      '<div class="field"><label for="modNom">Nombre del módulo</label><input id="modNom" placeholder="p. ej. TikTok Shop · Q3 2026"></div>' +
+      '<div class="field"><label for="modReg">Reglas nuevas</label><input id="modReg" placeholder="qué cambia, qué se prioriza, qué se prohíbe…"></div>' +
       '<div class="field"><button class="btn pri" id="bMod">Agregar módulo</button></div></div></div></div>';
 
     html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Notas internas de la agencia</h3><span class="hint">criterios propios que la IA debe respetar siempre</span></div><div class="card-b">' +

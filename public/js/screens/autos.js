@@ -16,9 +16,9 @@ const S_Autos = {
 
     html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Flujo estándar del método</h3></div><div class="card-b"><div class="script" style="font-family:var(--mono);font-size:11.5px">Reel/Anuncio → Comentario con palabra clave → DM automático (ManyChat)\n→ 1 pregunta calificadora → valor + link → WhatsApp / agenda / landing\n→ conversación humana (&lt;5 min) → VENTA → etiqueta en CRM\n→ secuencia post-venta → fidelización → referido</div>' +
       '<div class="fgrid" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end;margin-top:14px">' +
-      '<div class="field"><label>Canal</label><select id="aCanal"><option>ManyChat (DM Instagram)</option><option>WhatsApp Business</option><option>Email</option><option>CRM / seguimiento</option><option>Flujo completo (comentario → venta)</option></select></div>' +
-      '<div class="field"><label>Objetivo</label><select id="aObj"><option>Capturar y calificar leads</option><option>Agendar citas</option><option>Entregar lead magnet</option><option>Cerrar venta por DM</option><option>Recompra / fidelización</option><option>Recuperar carritos o DMs fríos</option></select></div>' +
-      '<div class="field"><label>Palabra clave</label><input id="aKw" placeholder="p. ej. PRECIO, GUÍA, AGENDA"></div>' +
+      '<div class="field"><label for="aCanal">Canal</label><select id="aCanal"><option>ManyChat (DM Instagram)</option><option>WhatsApp Business</option><option>Email</option><option>CRM / seguimiento</option><option>Flujo completo (comentario → venta)</option></select></div>' +
+      '<div class="field"><label for="aObj">Objetivo</label><select id="aObj"><option>Capturar y calificar leads</option><option>Agendar citas</option><option>Entregar lead magnet</option><option>Cerrar venta por DM</option><option>Recompra / fidelización</option><option>Recuperar carritos o DMs fríos</option></select></div>' +
+      '<div class="field"><label for="aKw">Palabra clave</label><input id="aKw" placeholder="p. ej. PRECIO, GUÍA, AGENDA"></div>' +
       '<div class="field"><button class="btn pri" id="bAuto">Generar secuencia</button></div></div><div id="aProg"></div></div></div>';
 
     if (!c.autos.length){
@@ -38,7 +38,12 @@ const S_Autos = {
     el.innerHTML = html;
     document.getElementById('bAuto').onclick = () => this.generar(c);
     el.querySelectorAll('[data-dela]').forEach(b => b.onclick = () => {
-      c.autos = c.autos.filter(x => x.id !== b.dataset.dela); Store.save(); App.refresh();
+      const a = c.autos.find(x => x.id === b.dataset.dela);
+      UI.confirmar('Eliminar secuencia',
+        'Vas a eliminar la secuencia <b>' + UI.esc(a ? a.nombre : '') + '</b> con sus mensajes. Esta acción no se puede deshacer.',
+        'Eliminar', () => {
+          c.autos = c.autos.filter(x => x.id !== b.dataset.dela); Store.save(); App.refresh();
+        });
     });
   },
   async generar(c){

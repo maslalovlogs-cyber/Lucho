@@ -74,7 +74,7 @@ const S_Dash = {
       '</div></div></div>';
 
     if (M.length){
-      html += '<div class="card" style="margin-top:18px"><div class="card-h"><h3>Histórico semanal</h3></div><div class="card-b" style="padding:0;overflow-x:auto"><table class="tb"><tr><th>Semana</th><th>Alcance</th><th>Ret. %</th><th>Interac.</th><th>Visitas</th><th>DMs</th><th>Conv.</th><th>Seguid.</th><th>Gasto</th><th>Ingresos</th><th></th></tr>' +
+      html += '<div class="card" style="margin-top:18px"><div class="card-h"><h3>Histórico semanal</h3></div><div class="card-b" style="padding:0;overflow-x:auto"><table class="tb"><tr><th scope="col">Semana</th><th scope="col">Alcance</th><th scope="col">Ret. %</th><th scope="col">Interac.</th><th scope="col">Visitas</th><th scope="col">DMs</th><th scope="col">Conv.</th><th scope="col">Seguid.</th><th scope="col">Gasto</th><th scope="col">Ingresos</th><th scope="col"></th></tr>' +
         M.slice().reverse().map(m => '<tr><td class="num">' + UI.esc(m.semana) + '</td><td class="num">' + (+m.alcance||0).toLocaleString() + '</td><td class="num">' + (m.retencion||0) + '</td><td class="num">' + (m.interaccion||0) + '</td><td class="num">' + (m.visitas||0) + '</td><td class="num">' + (m.dms||0) + '</td><td class="num">' + (m.conversiones||0) + '</td><td class="num">' + (m.seguidores||0) + '</td><td class="num">' + (m.gasto||0) + '</td><td class="num">' + (m.ingresos||0) + '</td>' +
           '<td><button class="btn sm ghost danger" data-delm="' + m.semana + '">✕</button></td></tr>').join('') + '</table></div></div>';
     }
@@ -83,7 +83,11 @@ const S_Dash = {
     const bAn = document.getElementById('bAn');
     if (bAn && !bAn.disabled) bAn.onclick = () => this.analizar(c);
     el.querySelectorAll('[data-delm]').forEach(b => b.onclick = () => {
-      c.metricas = c.metricas.filter(x => x.semana !== b.dataset.delm); Store.save(); App.refresh();
+      UI.confirmar('Eliminar semana',
+        'Vas a eliminar las métricas de la semana <b>' + UI.esc(b.dataset.delm) + '</b>. Esta acción no se puede deshacer.',
+        'Eliminar', () => {
+          c.metricas = c.metricas.filter(x => x.semana !== b.dataset.delm); Store.save(); App.refresh();
+        });
     });
   },
   alertas(c, last, prev, icgProm){
@@ -108,7 +112,7 @@ const S_Dash = {
   formulario(c){
     const semDef = UI.hoyISO(); // G5: fecha local, no UTC
     UI.modal('Registrar semana',
-      '<div class="field"><label>Semana (fecha del viernes)</label><input type="date" id="mSem" value="' + semDef + '"></div><div class="fgrid">' +
+      '<div class="field"><label for="mSem">Semana (fecha del viernes)</label><input type="date" id="mSem" value="' + semDef + '"></div><div class="fgrid">' +
       UI.campoNum('mAl','Alcance') + UI.campoNum('mRet','Retención prom. %') + UI.campoNum('mInt','Interacciones') +
       UI.campoNum('mVis','Visitas a perfil') + UI.campoNum('mDm','DMs / leads') + UI.campoNum('mConv','Conversiones') +
       UI.campoNum('mSeg','Seguidores totales') + UI.campoNum('mGas','Gasto en pauta (USD)') + UI.campoNum('mIng','Ingresos atribuidos (USD)') +

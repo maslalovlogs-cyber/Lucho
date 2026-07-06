@@ -33,7 +33,7 @@ const S_Ads = {
         html += '<details class="acc" open><summary><span class="chip blue">Mes ' + k.mes + '</span> ' + UI.esc(k.nombre) + '<span class="car">▶</span></summary><div class="acc-b">' +
           '<p style="margin-bottom:10px"><b>Objetivo:</b> ' + UI.esc(k.objetivo) + ' · <b>Presupuesto:</b> ' + UI.esc(k.presupuesto) + '</p>';
         if (k.campanas && k.campanas.length){
-          html += '<table class="tb"><tr><th>Campaña</th><th>Objetivo de plataforma</th><th>Audiencia</th><th>% Ppto</th><th>Creativo</th><th>KPI meta</th></tr>' +
+          html += '<table class="tb"><tr><th scope="col">Campaña</th><th scope="col">Objetivo de plataforma</th><th scope="col">Audiencia</th><th scope="col">% Ppto</th><th scope="col">Creativo</th><th scope="col">KPI meta</th></tr>' +
             k.campanas.map(a => '<tr><td><b>' + UI.esc(a.nombre) + '</b></td><td>' + UI.esc(a.objetivoPlataforma) + '</td><td style="font-size:12px">' + UI.esc(a.audiencia) + '</td><td class="num">' + UI.esc(a.pct) + '</td><td style="font-size:12px">' + UI.esc(a.creativo) + '</td><td style="font-size:12px">' + UI.esc(a.kpi) + '</td></tr>').join('') + '</table>';
         }
         if (k.remarketing) html += '<p style="font-size:12.5px;margin-top:10px"><b>Remarketing:</b> ' + UI.esc(k.remarketing) + '</p>';
@@ -44,7 +44,12 @@ const S_Ads = {
     el.innerHTML = html;
     document.getElementById('bCamp').onclick = () => this.generar(c);
     el.querySelectorAll('[data-delk]').forEach(b => b.onclick = () => {
-      c.campanas = c.campanas.filter(x => x.id !== b.dataset.delk); Store.save(); App.refresh();
+      const k = c.campanas.find(x => x.id === b.dataset.delk);
+      UI.confirmar('Eliminar campaña',
+        'Vas a eliminar la campaña <b>' + UI.esc(k ? k.nombre : '') + '</b>. Esta acción no se puede deshacer.',
+        'Eliminar', () => {
+          c.campanas = c.campanas.filter(x => x.id !== b.dataset.delk); Store.save(); App.refresh();
+        });
     });
   },
   async generar(c){

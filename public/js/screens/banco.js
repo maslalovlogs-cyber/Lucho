@@ -34,7 +34,7 @@ const S_Banco = {
     if (!c.banco.length){
       html += '<div class="card"><div class="empty"><div class="art">ICG</div><h4>El banco está vacío</h4><p>Cuando publiques una pieza del calendario, registra aquí sus métricas y el sistema calculará su ICG y la clasificará automáticamente.</p></div></div>';
     } else {
-      html += '<div class="card"><div class="card-h"><h3>Registro y clasificación</h3><span class="hint">ordenado por ICG</span></div><div class="card-b" style="padding:0"><table class="tb"><tr><th>Pieza</th><th>Formato · Pilar</th><th>ICG</th><th>Clase</th><th>Acción del método</th><th></th></tr>' +
+      html += '<div class="card"><div class="card-h"><h3>Registro y clasificación</h3><span class="hint">ordenado por ICG</span></div><div class="card-b" style="padding:0"><table class="tb"><tr><th scope="col">Pieza</th><th scope="col">Formato · Pilar</th><th scope="col">ICG</th><th scope="col">Clase</th><th scope="col">Acción del método</th><th scope="col"></th></tr>' +
         c.banco.slice().sort((a,b) => b.icg - a.icg).map(b => {
           const cl = ICG.clase(b.icg);
           return '<tr><td><b>' + UI.esc(b.titulo) + '</b><div style="font-size:11px;color:var(--faint)">' + UI.esc(b.estructura||'') + '</div></td>' +
@@ -48,7 +48,7 @@ const S_Banco = {
 
       const est = ICG.estructuras(c.banco).filter(e => e.n >= 2);
       if (est.length){
-        html += '<div class="card" style="margin-top:16px"><div class="card-h"><h3>Estructuras (Regla de 3)</h3><span class="hint">una estructura se certifica con 3 piezas ≥ 1.3</span></div><div class="card-b" style="padding:0"><table class="tb"><tr><th>Estructura</th><th>Piezas</th><th>ICG medio</th><th>Estado</th></tr>' +
+        html += '<div class="card" style="margin-top:16px"><div class="card-h"><h3>Estructuras (Regla de 3)</h3><span class="hint">una estructura se certifica con 3 piezas ≥ 1.3</span></div><div class="card-b" style="padding:0"><table class="tb"><tr><th scope="col">Estructura</th><th scope="col">Piezas</th><th scope="col">ICG medio</th><th scope="col">Estado</th></tr>' +
           est.map(e => '<tr><td><b>' + UI.esc(e.k) + '</b></td><td class="num">' + e.n + '</td><td class="num">' + e.prom.toFixed(2) + '</td><td>' +
             (e.certificada ? '<span class="chip gold">Certificada ✓</span>' : (e.promete ? '<span class="chip green">Promete · faltan ' + (3 - e.cumplen) + ' pieza(s) ≥ 1.3</span>' : '<span class="chip gray">En observación</span>')) + '</td></tr>').join('') + '</table></div></div>';
       }
@@ -56,21 +56,26 @@ const S_Banco = {
     el.innerHTML = html;
     document.getElementById('bReg').onclick = () => this.formulario(c);
     el.querySelectorAll('[data-delb]').forEach(b => b.onclick = () => {
-      c.banco = c.banco.filter(x => x.id !== b.dataset.delb);
-      Store.save(); App.refresh();
+      const pieza = c.banco.find(x => x.id === b.dataset.delb);
+      UI.confirmar('Eliminar registro del Banco',
+        'Vas a eliminar <b>' + UI.esc(pieza ? pieza.titulo : '') + '</b> y sus métricas registradas. Esta acción no se puede deshacer.',
+        'Eliminar', () => {
+          c.banco = c.banco.filter(x => x.id !== b.dataset.delb);
+          Store.save(); App.refresh();
+        });
     });
     el.querySelectorAll('[data-rep]').forEach(b => b.onclick = () => this.replicar(c, b.dataset.rep));
   },
   formulario(c){
     const publicadas = c.calendario.filter(k => k.publicado && !c.banco.some(b => b.calId === k.id));
     UI.modal('Registrar pieza publicada',
-      (publicadas.length ? '<div class="field"><label>Pieza del calendario<small>o escribe una libre abajo</small></label><select id="rCal"><option value="">— libre —</option>' +
+      (publicadas.length ? '<div class="field"><label for="rCal">Pieza del calendario<small>o escribe una libre abajo</small></label><select id="rCal"><option value="">— libre —</option>' +
         publicadas.map(p => '<option value="' + p.id + '">' + UI.esc(p.titulo) + '</option>').join('') + '</select></div>' : '') +
-      '<div class="field"><label>Título</label><input id="rTit" placeholder="nombre de la pieza"></div>' +
+      '<div class="field"><label for="rTit">Título</label><input id="rTit" placeholder="nombre de la pieza"></div>' +
       '<div class="fgrid c2">' +
-      '<div class="field"><label>Formato</label><select id="rFmt"><option>Reel</option><option>Carrusel</option><option>Historia</option><option>Post</option><option>Live</option><option>Anuncio</option></select></div>' +
-      '<div class="field"><label>Pilar</label><input id="rPil" placeholder="p. ej. Educación"></div></div>' +
-      '<div class="field"><label>Estructura<small>gancho + desarrollo replicable; agrupa piezas para la Regla de 3</small></label><input id="rEst" placeholder="p. ej. &quot;5 formas de usar X&quot;"></div>' +
+      '<div class="field"><label for="rFmt">Formato</label><select id="rFmt"><option>Reel</option><option>Carrusel</option><option>Historia</option><option>Post</option><option>Live</option><option>Anuncio</option></select></div>' +
+      '<div class="field"><label for="rPil">Pilar</label><input id="rPil" placeholder="p. ej. Educación"></div></div>' +
+      '<div class="field"><label for="rEst">Estructura<small>gancho + desarrollo replicable; agrupa piezas para la Regla de 3</small></label><input id="rEst" placeholder="p. ej. &quot;5 formas de usar X&quot;"></div>' +
       '<div class="fs-title">Métricas a 7 días</div><div class="fgrid">' +
       UI.campoNum('rAl','Alcance') + UI.campoNum('rRet','Retención %','promedio del video') + UI.campoNum('rCom','Compartidos') +
       UI.campoNum('rGua','Guardados') + UI.campoNum('rVis','Visitas a perfil') + UI.campoNum('rCli','Clics') +

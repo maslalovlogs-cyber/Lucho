@@ -27,6 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%231A56F0'/><text x='32' y='43' font-family='monospace' font-size='24' font-weight='bold' fill='white' text-anchor='middle'>321</text></svg>">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -48,14 +49,14 @@
           <b id="mesLbl">Mes 1 · Etapa 1</b>
           <button id="mesUp" title="Mes siguiente del programa">+</button>
         </div>
-        <select id="clientSel" title="Cliente activo"></select>
+        <select id="clientSel" title="Cliente activo" aria-label="Cliente activo"></select>
         <span class="save-dot" id="saveDot"></span>
       </div>
     </div>
     <div class="view"><div class="wrap" id="view"></div></div>
   </div>
 </div>
-<div class="toast-wrap" id="toasts"></div>
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
 <div id="modalHost"></div>
 <script type="module" src="js/app.js"></script>
 </body>
