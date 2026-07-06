@@ -1,0 +1,16 @@
+{
+  "name": "321-os",
+  "version": "0.2.0",
+  "description": "321 OS — aplicación de inteligencia estratégica del Método 3·2·1",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0"
+  }
+}

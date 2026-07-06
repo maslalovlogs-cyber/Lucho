@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Método 3·2·1 — Inteligencia Estratégica</title>
+<!--
+════════════════════════════════════════════════════════════════════
+  MÉTODO 3·2·1 · Aplicación de Inteligencia Estratégica
+  ────────────────────────────────────────────────────────────────
+  Arquitectura modular (cada bloque marcado "MÓDULO" equivale a un
+  archivo independiente si se separa el proyecto):
+
+    MÓDULO KB      → js/kb.js          Base de conocimiento (Método 3·2·1)
+    MÓDULO STORE   → js/store.js       Estado + persistencia
+    MÓDULO AI      → js/ai.js          Motor de IA (estratega senior)
+    MÓDULO ICG     → js/icg.js         Cálculo del Índice de Contenido Ganador
+    MÓDULO UI      → js/ui.js          Helpers de interfaz
+    MÓDULO S1..S10 → js/screens/*.js   Pantallas
+    MÓDULO ROUTER  → js/app.js         Navegación e inicio
+
+  Para agregar plataformas nuevas (TikTok Shop, Threads, YouTube,
+  Pinterest, LinkedIn) o cambios de algoritmo: pantalla "Método"
+  → Módulos de actualización. No se toca el código.
+════════════════════════════════════════════════════════════════════
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">3·2·1</div>
+      <div><h1>Método 3·2·1</h1><span>Estratega de agencia</span></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="rail" id="rail"></div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <span class="crumb" id="crumb">Clientes</span>
+      <div class="client-pick">
+        <div class="mes-step" id="mesStep" style="display:none">
+          <button id="mesDown" title="Mes anterior del programa">−</button>
+          <b id="mesLbl">Mes 1 · Etapa 1</b>
+          <button id="mesUp" title="Mes siguiente del programa">+</button>
+        </div>
+        <select id="clientSel" title="Cliente activo"></select>
+        <span class="save-dot" id="saveDot"></span>
+      </div>
+    </div>
+    <div class="view"><div class="wrap" id="view"></div></div>
+  </div>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+<div id="modalHost"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
