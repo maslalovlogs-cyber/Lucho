@@ -63,4 +63,5 @@ La prueba de humo verifica: render de las 10 pantallas, creación de cliente, **
 | 5. Optimización IA (structured outputs, lotes, prompt caching) | ✅ |
 | 6. UX/UI y accesibilidad | ✅ |
 | 7. Rendimiento (fuentes locales, gzip, caché HTTP) | ✅ |
-| 8–10. Seguridad · Documentación · Pruebas | pendientes |
+| 8. Seguridad (CSP, rate limit, timing-safe) | ✅ |
+| 9–10. Documentación · Pruebas | pendientes |

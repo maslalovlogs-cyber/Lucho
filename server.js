@@ -21,6 +21,7 @@
    ════════════════════════════════════════════════════════════════ */
 import http from 'node:http';
 import { gzipSync } from 'node:zlib';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,6 +50,45 @@ const COMPRIMIBLE = new Set(['.html', '.css', '.js', '.json', '.svg']);
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 120000 }) : null; // ms; el SDK reintenta 429/5xx solo
 
+/* ── Fase 8: seguridad ─────────────────────────────────────────── */
+
+/* Cabeceras en TODAS las respuestas. La CSP es estricta: scripts solo
+   propios (sin inline — la Fase 4 eliminó el último onclick inline),
+   fuentes propias (Fase 7), sin marcos de terceros. style 'unsafe-inline'
+   es necesario: la UI usa estilos inline por diseño. */
+function cabecerasSeguridad(res){
+  res.setHeader('Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'; form-action 'self'");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+}
+
+/* Comparación en tiempo constante (evita timing attacks al password). */
+function passwordCorrecto(recibido){
+  const a = createHash('sha256').update(String(recibido || '')).digest();
+  const b = createHash('sha256').update(process.env.APP_PASSWORD).digest();
+  return timingSafeEqual(a, b);
+}
+
+/* Rate limit en memoria por IP: 30 peticiones de IA cada 10 minutos.
+   Suficiente para uso real de agencia; frena el abuso de un proxy
+   expuesto. (Tras un reverse proxy, configura trust del X-Forwarded-For
+   en ese nivel; aquí se usa la IP directa del socket.) */
+const VENTANA_MS = 10 * 60 * 1000, MAX_PETICIONES = 30;
+const cubetas = new Map();
+function limiteExcedido(ip){
+  const ahora = Date.now();
+  let c = cubetas.get(ip);
+  if (!c || ahora > c.reinicio){ c = { n: 0, reinicio: ahora + VENTANA_MS }; cubetas.set(ip, c); }
+  if (cubetas.size > 10000) cubetas.clear(); // tope de memoria
+  c.n++;
+  return c.n > MAX_PETICIONES;
+}
+
+/* Límites por campo (el system legítimo es el Método: ~50-80 KB máx). */
+const MAX_SYSTEM = 150000, MAX_USER = 60000;
+
 function json(res, status, body){
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(body));
@@ -68,8 +108,12 @@ function leerCuerpo(req){
 }
 
 async function apiAI(req, res){
-  if (process.env.APP_PASSWORD && req.headers['x-app-password'] !== process.env.APP_PASSWORD){
+  if (process.env.APP_PASSWORD && !passwordCorrecto(req.headers['x-app-password'])){
+    console.warn('[api/ai] intento con contraseña incorrecta desde', req.socket.remoteAddress);
     return json(res, 401, { error: 'Contraseña de acceso incorrecta o ausente' });
+  }
+  if (limiteExcedido(req.socket.remoteAddress || '?')){
+    return json(res, 429, { error: 'Demasiadas peticiones de IA; espera unos minutos' });
   }
   if (!client){
     return json(res, 503, { error: 'El servidor no tiene configurada ANTHROPIC_API_KEY. Crea un archivo .env (ver .env.example) y reinicia.' });
@@ -83,6 +127,9 @@ async function apiAI(req, res){
   }
   if (schema !== undefined && (typeof schema !== 'object' || schema === null || Array.isArray(schema))){
     return json(res, 400, { error: 'schema debe ser un objeto JSON Schema' });
+  }
+  if (system.length > MAX_SYSTEM || user.length > MAX_USER){
+    return json(res, 413, { error: 'La petición excede el tamaño permitido' });
   }
   try{
     const peticion = {
@@ -139,6 +186,7 @@ async function estatico(req, res){
 }
 
 const server = http.createServer((req, res) => {
+  cabecerasSeguridad(res);
   if (req.method === 'POST' && req.url === '/api/ai') return apiAI(req, res);
   if (req.method === 'GET' || req.method === 'HEAD') return estatico(req, res);
   json(res, 405, { error: 'Método no permitido' });
