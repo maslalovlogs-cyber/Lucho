@@ -2,6 +2,7 @@ import { Store } from '../store.js';
 import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
+import { DIST_SEMESTRAL, nivelPresupuesto } from '../presupuesto.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S3 — js/screens/estrategia.js · PANTALLA 3: Estrategia
@@ -11,7 +12,6 @@ import { AI } from '../ai.js';
    ════════════════════════════════════════════════════════════════ */
 const S_Estrategia = {
   title: 'Estrategia 6 meses',
-  DIST: [5,10,15,20,20,30],
   render(el){
     const c = Store.client();
     if (!c){ el.innerHTML = App.sinCliente(); return; }
@@ -25,11 +25,11 @@ const S_Estrategia = {
     const p = +c.intake.presupuesto || 0;
     if (p > 0){
       const total = p * 6;
-      const nivel = p < 300 ? 'A · Local básico' : (p <= 1500 ? 'B · Crecimiento' : 'C · Agresivo');
+      const nivel = nivelPresupuesto(p).etiqueta;
       html += '<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Presupuesto publicitario del semestre</h3><span class="hint">distribución fija del método · nivel ' + nivel + '</span></div>' +
         '<div class="card-b"><table class="tb"><tr><th>Mes</th>' + [1,2,3,4,5,6].map(m => '<th>M' + m + '</th>').join('') + '<th>Total</th></tr>' +
-        '<tr><td>% del semestre</td>' + this.DIST.map(x => '<td class="num">' + x + '%</td>').join('') + '<td class="num">100%</td></tr>' +
-        '<tr><td>Inversión</td>' + this.DIST.map(x => '<td class="num">' + UI.fmtMoney(total * x / 100) + '</td>').join('') + '<td class="num"><b>' + UI.fmtMoney(total) + '</b></td></tr></table>' +
+        '<tr><td>% del semestre</td>' + DIST_SEMESTRAL.map(x => '<td class="num">' + x + '%</td>').join('') + '<td class="num">100%</td></tr>' +
+        '<tr><td>Inversión</td>' + DIST_SEMESTRAL.map(x => '<td class="num">' + UI.fmtMoney(total * x / 100) + '</td>').join('') + '<td class="num"><b>' + UI.fmtMoney(total) + '</b></td></tr></table>' +
         '<p style="font-size:12px;color:var(--muted);margin-top:10px">Regla del método: la pauta nunca rescata contenido débil — amplifica piezas con ICG ≥ 1.2 ya validadas orgánicamente.</p></div></div>';
     }
 

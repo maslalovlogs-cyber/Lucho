@@ -1,7 +1,6 @@
 /* ═══════════ styles/tokens.css ═══════════ */
 :root{
   --ink:#0B0D12;            /* negro estructural */
-  --ink-2:#141821;
   --ink-3:#1C212D;
   --canvas:#F5F6F8;         /* lienzo gris */
   --surface:#FFFFFF;
@@ -12,7 +11,7 @@
   --faint:#98A0B0;
   --blue:#1A56F0;           /* azul del sistema */
   --blue-deep:#0F3FBE;
-  --blue-tint:#EDF2FF; --blue-t:#EDF2FF;
+  --blue-tint:#EDF2FF; --blue-t:#EDF2FF; /* --blue-t: NO borrar — las alertas lo usan dinámicamente (var(--{color}-t)) */
   --blue-line:#C7D6FB;
   --green:#0E9F6E; --green-t:#E7F7F0;
   --amber:#C77E0A; --amber-t:#FBF3E4;
@@ -88,8 +87,6 @@ input,select,textarea{font-family:inherit;font-size:13.5px;color:var(--text)}
 .btn:hover{border-color:#C4C9D4;background:#FAFBFC}
 .btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.pri:hover{background:var(--blue-deep);border-color:var(--blue-deep)}
-.btn.ink{background:var(--ink);border-color:var(--ink);color:#fff}
-.btn.ink:hover{background:var(--ink-3)}
 .btn.sm{padding:5px 10px;font-size:12px;border-radius:7px}
 .btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .btn.ghost:hover{background:var(--canvas);color:var(--text)}
@@ -195,7 +192,7 @@ svg.chart text{font-family:var(--mono);font-size:9.5px;fill:var(--faint)}
 .alert-it .ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:12px;flex-shrink:0}
 .alert-it b{display:block;font-size:12.5px}
 .alert-it p{color:var(--muted);font-size:12px;margin-top:1px}
-.login-hint{font-size:11.5px;color:var(--faint);margin-top:8px}
+.storage-hint{font-size:11.5px;color:var(--faint);margin-top:8px}
 .btn:focus-visible,.nav button:focus-visible,.seg button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 @media (hover:none){.cal-it .acts{display:flex}.cal-it .acts button{padding:3px 8px;font-size:12px}}
 @media (max-width:760px){

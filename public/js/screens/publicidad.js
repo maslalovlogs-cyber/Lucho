@@ -2,6 +2,7 @@ import { Store } from '../store.js';
 import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
+import { DIST_SEMESTRAL, nivelPresupuesto } from '../presupuesto.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S7 — js/screens/publicidad.js · PANTALLA 7: Publicidad
@@ -12,8 +13,8 @@ const S_Ads = {
     const c = Store.client();
     if (!c){ el.innerHTML = App.sinCliente(); return; }
     const p = +c.intake.presupuesto || 0;
-    const nivel = p ? (p < 300 ? 'A · Local básico' : (p <= 1500 ? 'B · Crecimiento' : 'C · Agresivo')) : null;
-    const mesPct = [5,10,15,20,20,30][c.mes - 1];
+    const nivel = (nivelPresupuesto(p) || {}).etiqueta || null;
+    const mesPct = DIST_SEMESTRAL[c.mes - 1];
     const ganadores = c.banco.filter(b => b.icg >= 1.2);
     let html = '<div class="h-page"><div><h2>Publicidad</h2><p>La pauta amplifica lo validado: solo corren creativos con ICG ≥ 1.2 o derivados directos. Si un anuncio muere, se vuelve al Banco, no al brainstorming.</p></div>' +
       '<button class="btn pri" id="bCamp">Diseñar campaña del mes</button></div>';

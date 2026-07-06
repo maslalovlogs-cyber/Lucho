@@ -59,6 +59,6 @@ La prueba de humo verifica: render de las 10 pantallas, creación de cliente, **
 | 1. Auditoría | ✅ `AUDITORIA.md` |
 | 2. Arquitectura (separación en módulos, mini-backend, IndexedDB) | ✅ este commit |
 | 3. Corrección de errores (G3–G6, M1–M8 de la auditoría) | ✅ |
-| 4. Refactorización (duplicaciones, código muerto) | pendiente |
+| 4. Refactorización (duplicaciones, código muerto) | ✅ |
 | 5. Optimización IA (structured outputs, streaming, prompt caching) | pendiente |
 | 6–10. UX/UI · Rendimiento · Seguridad · Documentación · Pruebas | pendientes |

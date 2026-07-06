@@ -107,12 +107,11 @@ const S_Dash = {
   },
   formulario(c){
     const semDef = UI.hoyISO(); // G5: fecha local, no UTC
-    const num = (id,l) => '<div class="field"><label>' + l + '</label><input type="number" id="' + id + '" min="0" step="any" value="0"></div>';
     UI.modal('Registrar semana',
       '<div class="field"><label>Semana (fecha del viernes)</label><input type="date" id="mSem" value="' + semDef + '"></div><div class="fgrid">' +
-      num('mAl','Alcance') + num('mRet','Retención prom. %') + num('mInt','Interacciones') +
-      num('mVis','Visitas a perfil') + num('mDm','DMs / leads') + num('mConv','Conversiones') +
-      num('mSeg','Seguidores totales') + num('mGas','Gasto en pauta (USD)') + num('mIng','Ingresos atribuidos (USD)') +
+      UI.campoNum('mAl','Alcance') + UI.campoNum('mRet','Retención prom. %') + UI.campoNum('mInt','Interacciones') +
+      UI.campoNum('mVis','Visitas a perfil') + UI.campoNum('mDm','DMs / leads') + UI.campoNum('mConv','Conversiones') +
+      UI.campoNum('mSeg','Seguidores totales') + UI.campoNum('mGas','Gasto en pauta (USD)') + UI.campoNum('mIng','Ingresos atribuidos (USD)') +
       '</div><button class="btn pri" id="mOk" style="width:100%">Guardar semana</button>',
       () => {
         document.getElementById('mOk').onclick = () => {

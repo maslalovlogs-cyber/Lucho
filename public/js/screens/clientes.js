@@ -10,6 +10,7 @@ const S_Clientes = {
   title: 'Clientes',
   render(el){
     const c = Store.client();
+    const crear = () => { const n = Store.nuevoCliente(); Store.data.clients.push(n); Store.data.activeId = n.id; Store.save(); App.refresh(); };
     let html = '<div class="h-page"><div><h2>' + (c ? 'Ficha del cliente' : 'Nuevo cliente') + '</h2>' +
       '<p>Todo el sistema se alimenta de esta ficha. Cuanto más completa, más precisa la estrategia. La IA hará preguntas inteligentes sobre lo que falte.</p></div>' +
       '<div style="display:flex;gap:8px"><button class="btn" id="bNuevo">+ Nuevo cliente</button>' +
@@ -20,9 +21,8 @@ const S_Clientes = {
         '<p>Crea la ficha del negocio y el sistema generará diagnóstico, estrategia de 6 meses, contenido, calendario, publicidad y automatizaciones con el Método 3·2·1.</p>' +
         '<button class="btn pri" id="bNuevo2">Crear cliente</button></div></div>';
       el.innerHTML = html;
-      const go = () => { const n = Store.nuevoCliente(); Store.data.clients.push(n); Store.data.activeId = n.id; Store.save(); App.refresh(); };
-      document.getElementById('bNuevo').onclick = go;
-      document.getElementById('bNuevo2').onclick = go;
+      document.getElementById('bNuevo').onclick = crear;
+      document.getElementById('bNuevo2').onclick = crear;
       return;
     }
 
@@ -64,7 +64,7 @@ const S_Clientes = {
     el.querySelectorAll('select[data-f]').forEach(s => { if (c.intake[s.dataset.f] == null) c.intake[s.dataset.f] = s.value; });
     document.getElementById('bGuardar').onclick = () => { Store.save(); UI.toast('Ficha guardada'); App.paintChrome(); };
     document.getElementById('bDx').onclick = () => App.go('dx');
-    document.getElementById('bNuevo').onclick = () => { const n = Store.nuevoCliente(); Store.data.clients.push(n); Store.data.activeId = n.id; Store.save(); App.refresh(); };
+    document.getElementById('bNuevo').onclick = crear;
     const del = document.getElementById('bBorrar');
     if (del) del.onclick = () => {
       const nombre = c.intake.empresa || 'este cliente';

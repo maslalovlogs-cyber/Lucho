@@ -15,7 +15,6 @@ const S_Cal = {
   render(el){
     const c = Store.client();
     if (!c){ el.innerHTML = App.sinCliente(); return; }
-    const cur = this.cursor;
     let html = '<div class="h-page"><div><h2>Calendario editorial</h2><p>Arrastra las piezas entre días para moverlas. El método recomienda 4–5 piezas de feed por semana en días alternados.</p></div>' +
       '<div style="display:flex;gap:8px"><div class="seg"><button id="vMes" class="' + (this.vista==='mes'?'on':'') + '">Mes</button><button id="vSem" class="' + (this.vista==='sem'?'on':'') + '">Semana</button></div>' +
       '<button class="btn" id="bPlan" title="La IA programa la semana siguiente con la plantilla del método">Planificar semana con IA</button></div></div>' +

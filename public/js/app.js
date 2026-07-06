@@ -16,18 +16,17 @@ import { S_Metodo } from './screens/metodo.js';
    ════════════════════════════════════════════════════════════════ */
 const App = {
   rutas: [
-    { id:'cli', icon:'M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.5 6a5.5 5.5 0 0 1 11 0z', s: () => S_Clientes, grupo:'Cliente' },
-    { id:'dx',  icon:'M2 8h3l2-5 3 10 2-5h2', s: () => S_Dx },
-    { id:'est', icon:'M2 13h3V6H2zm5 0h3V2H7zm5 0h3V9h-3z', s: () => S_Estrategia, grupo:'Sistema' },
-    { id:'con', icon:'M3 2h10v9l-3 3H3zM10 14v-3h3', s: () => S_Contenido },
-    { id:'cal', icon:'M3 3h10v10H3zM3 6h10M6 2v2M10 2v2', s: () => S_Cal },
-    { id:'ban', icon:'M8 2l1.8 3.9L14 6.5l-3 3 .8 4.3L8 11.7l-3.8 2.1L5 9.5l-3-3 4.2-.6z', s: () => S_Banco, grupo:'Operación' },
-    { id:'ads', icon:'M2 9l9-6v10zM11 6h3v2h-3M4 13l1 2', s: () => S_Ads },
-    { id:'aut', icon:'M9 1L3 9h4l-1 6 6-8H8z', s: () => S_Autos },
-    { id:'dash',icon:'M8 8V2a6 6 0 1 1-6 6h6z M10 1a5 5 0 0 1 5 5h-5z', s: () => S_Dash },
-    { id:'kb',  icon:'M8 5a2.5 2.5 0 1 1 0 6a2.5 2.5 0 0 1 0-6zM8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13', s: () => S_Metodo, grupo:'Sistema' }
+    { id:'cli', label:'Nuevo cliente', icon:'M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.5 6a5.5 5.5 0 0 1 11 0z', s: () => S_Clientes },
+    { id:'dx',  label:'Diagnóstico', icon:'M2 8h3l2-5 3 10 2-5h2', s: () => S_Dx },
+    { id:'est', label:'Estrategia 6 meses', icon:'M2 13h3V6H2zm5 0h3V2H7zm5 0h3V9h-3z', s: () => S_Estrategia },
+    { id:'con', label:'Contenido', icon:'M3 2h10v9l-3 3H3zM10 14v-3h3', s: () => S_Contenido },
+    { id:'cal', label:'Calendario', icon:'M3 3h10v10H3zM3 6h10M6 2v2M10 2v2', s: () => S_Cal },
+    { id:'ban', label:'Banco de Ganadores', icon:'M8 2l1.8 3.9L14 6.5l-3 3 .8 4.3L8 11.7l-3.8 2.1L5 9.5l-3-3 4.2-.6z', s: () => S_Banco },
+    { id:'ads', label:'Publicidad', icon:'M2 9l9-6v10zM11 6h3v2h-3M4 13l1 2', s: () => S_Ads },
+    { id:'aut', label:'Automatizaciones', icon:'M9 1L3 9h4l-1 6 6-8H8z', s: () => S_Autos },
+    { id:'dash',label:'Dashboard', icon:'M8 8V2a6 6 0 1 1-6 6h6z M10 1a5 5 0 0 1 5 5h-5z', s: () => S_Dash },
+    { id:'kb',  label:'Método', icon:'M8 5a2.5 2.5 0 1 1 0 6a2.5 2.5 0 0 1 0-6zM8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13', s: () => S_Metodo }
   ],
-  labels: { cli:'Nuevo cliente', dx:'Diagnóstico', est:'Estrategia 6 meses', con:'Contenido', cal:'Calendario', ban:'Banco de Ganadores', ads:'Publicidad', aut:'Automatizaciones', dash:'Dashboard', kb:'Método' },
   actual: 'cli',
   /* M8: la pantalla activa vive en el hash de la URL (#dash, #cal…),
      así sobrevive a recargas y funcionan atrás/adelante del navegador.
@@ -39,7 +38,7 @@ const App = {
     this.refresh(); // render síncrono: sin esperar al evento hashchange
   },
   sinCliente(){
-    return '<div class="card"><div class="empty"><div class="art">3·2·1</div><h4>Primero crea un cliente</h4><p>Toda pantalla trabaja sobre la ficha del cliente activo.</p><button class="btn pri" onclick="App.go(\'cli\')">Ir a Nuevo cliente</button></div></div>';
+    return '<div class="card"><div class="empty"><div class="art">3·2·1</div><h4>Primero crea un cliente</h4><p>Toda pantalla trabaja sobre la ficha del cliente activo.</p><button class="btn pri" data-go="cli">Ir a Nuevo cliente</button></div></div>';
   },
   pintaNav(){
     const grupos = { Cliente:['cli','dx','est'], Operación:['con','cal','ban','ads','aut','dash'], Sistema:['kb'] };
@@ -50,11 +49,10 @@ const App = {
         const r = this.rutas.find(x => x.id === id);
         h += '<button data-go="' + id + '" class="' + (this.actual === id ? 'on' : '') + '">' +
           '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="' + r.icon + '"/></svg>' +
-          this.labels[id] + (this.actual === id ? '<span class="dot"></span>' : '') + '</button>';
+          r.label + (this.actual === id ? '<span class="dot"></span>' : '') + '</button>';
       });
     });
     document.getElementById('nav').innerHTML = h;
-    document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => this.go(b.dataset.go));
   },
   pintaRail(){
     const c = Store.client();
@@ -102,6 +100,11 @@ const App = {
     };
     document.getElementById('mesDown').onclick = () => { const c = Store.client(); if (c && c.mes > 1){ c.mes--; Store.save(); this.refresh(); } };
     document.getElementById('mesUp').onclick = () => { const c = Store.client(); if (c && c.mes < 6){ c.mes++; Store.save(); this.refresh(); } };
+    // Delegación: cualquier [data-go] navega (nav, estados vacíos, futuros enlaces)
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-go]');
+      if (b) this.go(b.dataset.go);
+    });
     // Solo reacciona a cambios reales (atrás/adelante, edición manual del hash);
     // los clics de navegación ya renderizaron en go().
     window.addEventListener('hashchange', () => {
@@ -113,7 +116,6 @@ const App = {
     this.refresh();
   }
 };
-window.App = App;
 App.init();
 
 export { App };

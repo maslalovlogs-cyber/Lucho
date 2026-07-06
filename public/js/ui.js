@@ -54,6 +54,10 @@ const UI = {
     return '<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">' + this.esc(label) +
       '</span></div><div class="bar-meter"><div class="track"><i style="width:' + pct + '%"></i></div><b>' + (+val || 0) + '/10</b></div></div>';
   },
+  /** Campo numérico de modal (compartido por Banco y Dashboard). */
+  campoNum(id, lbl, hint){
+    return '<div class="field"><label for="' + id + '">' + UI.esc(lbl) + (hint ? '<small>' + UI.esc(hint) + '</small>' : '') + '</label><input type="number" id="' + id + '" min="0" step="any" value="0"></div>';
+  },
   chips(arr, cls){
     return '<div class="tag-list">' + (arr || []).map(x => '<span class="chip ' + (cls||'line') + '">' + this.esc(x) + '</span>').join('') + '</div>';
   },

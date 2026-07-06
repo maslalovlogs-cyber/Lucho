@@ -38,7 +38,7 @@ const S_Metodo = {
     html += '<div class="card"><div class="card-h"><h3>Datos</h3></div><div class="card-b" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
       '<button class="btn" id="bExp">Exportar respaldo (JSON)</button>' +
       '<label class="btn" style="position:relative;overflow:hidden">Importar respaldo<input type="file" id="bImp" accept=".json" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>' +
-      '<span class="login-hint">' + (Store.persistente ? 'Persistencia activa: tus datos se guardan automáticamente en este espacio.' : 'Este entorno no tiene almacenamiento persistente: exporta tu respaldo al terminar.') + '</span></div></div>';
+      '<span class="storage-hint">' + (Store.persistente ? 'Persistencia activa: tus datos se guardan automáticamente en este espacio.' : 'Este entorno no tiene almacenamiento persistente: exporta tu respaldo al terminar.') + '</span></div></div>';
 
     el.innerHTML = html;
     document.getElementById('bMod').onclick = () => {

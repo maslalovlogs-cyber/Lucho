@@ -30,7 +30,7 @@ await page.click('[data-go="dash"]');
 ok((await page.locator('#crumb').textContent()) === 'Dashboard', 'navegación a Dashboard');
 await page.click('[data-go="kb"]');
 ok((await page.locator('#view h2').first().textContent()).includes('Método 3·2·1'), 'pantalla Método renderiza KB');
-const hint = await page.locator('.login-hint').textContent();
+const hint = await page.locator('.storage-hint').textContent();
 ok(hint.includes('Persistencia activa'), 'Store reporta persistencia activa (IndexedDB)');
 
 // 4. RECARGA — pruebas clave: B2 (datos persisten) y M8 (pantalla persiste)

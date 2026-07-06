@@ -62,7 +62,6 @@ const S_Banco = {
   },
   formulario(c){
     const publicadas = c.calendario.filter(k => k.publicado && !c.banco.some(b => b.calId === k.id));
-    const num = (id, lbl, hint) => '<div class="field"><label>' + lbl + (hint ? '<small>' + hint + '</small>' : '') + '</label><input type="number" id="' + id + '" min="0" step="any" value="0"></div>';
     UI.modal('Registrar pieza publicada',
       (publicadas.length ? '<div class="field"><label>Pieza del calendario<small>o escribe una libre abajo</small></label><select id="rCal"><option value="">— libre —</option>' +
         publicadas.map(p => '<option value="' + p.id + '">' + UI.esc(p.titulo) + '</option>').join('') + '</select></div>' : '') +
@@ -72,9 +71,9 @@ const S_Banco = {
       '<div class="field"><label>Pilar</label><input id="rPil" placeholder="p. ej. Educación"></div></div>' +
       '<div class="field"><label>Estructura<small>gancho + desarrollo replicable; agrupa piezas para la Regla de 3</small></label><input id="rEst" placeholder="p. ej. &quot;5 formas de usar X&quot;"></div>' +
       '<div class="fs-title">Métricas a 7 días</div><div class="fgrid">' +
-      num('rAl','Alcance') + num('rRet','Retención %','promedio del video') + num('rCom','Compartidos') +
-      num('rGua','Guardados') + num('rVis','Visitas a perfil') + num('rCli','Clics') +
-      num('rDm','DMs iniciados') + num('rConv','Conversiones','ventas/leads atribuidos') + '</div>' +
+      UI.campoNum('rAl','Alcance') + UI.campoNum('rRet','Retención %','promedio del video') + UI.campoNum('rCom','Compartidos') +
+      UI.campoNum('rGua','Guardados') + UI.campoNum('rVis','Visitas a perfil') + UI.campoNum('rCli','Clics') +
+      UI.campoNum('rDm','DMs iniciados') + UI.campoNum('rConv','Conversiones','ventas/leads atribuidos') + '</div>' +
       '<button class="btn pri" id="rOk" style="width:100%">Calcular ICG y guardar</button>',
       () => {
         const sel = document.getElementById('rCal');
