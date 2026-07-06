@@ -2,6 +2,7 @@ import { Store } from '../store.js';
 import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
+import { PIEZAS } from '../schemas.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S4 — js/screens/contenido.js · PANTALLA 4: Contenido
@@ -63,25 +64,28 @@ const S_Contenido = {
     const btn = document.getElementById('bGenC'); btn.disabled = true;
     const pilar = document.getElementById('gPilar').value, fmt = document.getElementById('gFmt').value,
           plat = document.getElementById('gPlat').value, n = +document.getElementById('gN').value;
-    const nuevas = [];
     try{
-      for (let i = 1; i <= n; i++){
-        prog.innerHTML = UI.thinking('Diseñando pieza ' + i + ' de ' + n + ' con las estructuras del método…');
-        const it = await AI.json(
-          AI.system(['principios','algoritmos','formatos','evitar','operativo'], 'Diseñas UNA pieza de contenido lista para producir.'),
-          AI.clienteCtx(c) +
-          '\nPedido: 1 pieza. Pilar: ' + pilar + '. Formato: ' + fmt + '. Plataforma: ' + plat + '.' +
-          ((c.historial.length || nuevas.length) ? '\nNO repitas ninguna de estas ideas ya usadas: ' + JSON.stringify(c.historial.slice(-40).concat(nuevas)) : '') +
-          (c.banco.filter(b => b.icg >= 1.2).length ? '\nPrioriza variaciones de las estructuras ganadoras del Banco (Regla de 3).' : '') +
-          '\nDevuelve JSON (UN solo objeto): {"titulo":str,"formato":str,"pilar":str,"plataforma":str,"etapa":"Etapa 1|2|3","gancho":str literal para decir/mostrar en 0-3s con la keyword,"guion":str guion completo con marcas de tiempo y qué se ve/dice (5-8 líneas, usa \\n),"cta":str un solo CTA del método,"objPsico":str máx 8 palabras,"objAlgoritmo":str señal que fabrica máx 8 palabras,"duracion":str,"edicion":str máx 12 palabras,"plano":str máx 10 palabras,"miniatura":str máx 12 palabras,"hashtags":[3-5 con #],"keyword":str,"musica":str máx 8 palabras,"icgEsperado":str p.ej "1.2-1.4 (gancho de aversión a la pérdida)"}. Guion específico de ESTE negocio con sus productos y ciudad reales.');
+      /* Fase 5 (M6): antes eran n llamadas en serie (el método completo
+         viajaba n veces y se esperaba n veces); ahora es UNA llamada
+         que devuelve el lote entero con salida estructurada. */
+      prog.innerHTML = UI.thinking('Diseñando ' + n + ' piezas con las estructuras del método…');
+      const res = await AI.json(
+        AI.system(['principios','algoritmos','formatos','evitar','operativo'], 'Diseñas un lote de piezas de contenido listas para producir.'),
+        AI.clienteCtx(c) +
+        '\nPedido: ' + n + ' piezas distintas entre sí. Pilar: ' + pilar + '. Formato: ' + fmt + '. Plataforma: ' + plat + '.' +
+        (c.historial.length ? '\nNO repitas ninguna de estas ideas ya usadas: ' + JSON.stringify(c.historial.slice(-40)) : '') +
+        (c.banco.filter(b => b.icg >= 1.2).length ? '\nPrioriza variaciones de las estructuras ganadoras del Banco (Regla de 3).' : '') +
+        '\nDevuelve JSON: {"piezas":[' + n + ' objetos]}. Cada objeto: {"titulo":str,"formato":str,"pilar":str,"plataforma":str,"etapa":"Etapa 1|2|3","gancho":str literal para decir/mostrar en 0-3s con la keyword,"guion":str guion completo con marcas de tiempo y qué se ve/dice (5-8 líneas, usa \\n),"cta":str un solo CTA del método,"objPsico":str máx 8 palabras,"objAlgoritmo":str señal que fabrica máx 8 palabras,"duracion":str,"edicion":str máx 12 palabras,"plano":str máx 10 palabras,"miniatura":str máx 12 palabras,"hashtags":[3-5 con #],"keyword":str,"musica":str máx 8 palabras,"icgEsperado":str p.ej "1.2-1.4 (gancho de aversión a la pérdida)"}. Guion específico de ESTE negocio con sus productos y ciudad reales.',
+        PIEZAS);
+      (res.piezas || []).forEach(it => {
         it.id = Store.uid(); it.creado = new Date().toISOString();
-        c.contenidos.push(it); c.historial.push(it.titulo); nuevas.push(it.titulo);
-        Store.save();
-      }
-      App.refresh(); UI.toast(n + ' piezas nuevas en la biblioteca');
+        c.contenidos.push(it); c.historial.push(it.titulo);
+      });
+      Store.save();
+      App.refresh(); UI.toast((res.piezas || []).length + ' piezas nuevas en la biblioteca');
     }catch(e){
       App.refresh();
-      UI.toast('Error al generar' + (nuevas.length ? ' (se guardaron ' + nuevas.length + ' piezas)' : '') + ': ' + e.message);
+      UI.toast('Error al generar: ' + e.message);
     }
   },
   programar(c, id){

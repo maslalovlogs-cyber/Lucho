@@ -27,8 +27,8 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'public');
 const PORT = Number(process.env.PORT) || 3000;
-const MODEL = 'claude-sonnet-4-6';   // mismo modelo que usaba la app original
-const MAX_TOKENS = 1000;             // paridad con el original; se revisa en Fase 5
+const MODEL = 'claude-sonnet-5';     // Fase 5: sucesor de sonnet-4-6, con structured outputs
+const MAX_TOKENS = 4096;             // Fase 5 (G2): antes 1000 → los JSON largos se truncaban
 const BODY_LIMIT = 512 * 1024;       // 512 KB de cuerpo máximo
 
 const MIME = {
@@ -41,7 +41,7 @@ const MIME = {
   '.ico': 'image/x-icon'
 };
 
-const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
+const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 120000 }) : null; // ms; el SDK reintenta 429/5xx solo
 
 function json(res, status, body){
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -71,17 +71,29 @@ async function apiAI(req, res){
   let body;
   try{ body = JSON.parse(await leerCuerpo(req)); }
   catch(e){ return json(res, e.message === 'body_too_large' ? 413 : 400, { error: 'Cuerpo de la petición inválido' }); }
-  const { system, user } = body || {};
+  const { system, user, schema } = body || {};
   if (typeof system !== 'string' || typeof user !== 'string' || !system || !user){
     return json(res, 400, { error: 'Faltan los campos system y user' });
   }
+  if (schema !== undefined && (typeof schema !== 'object' || schema === null || Array.isArray(schema))){
+    return json(res, 400, { error: 'schema debe ser un objeto JSON Schema' });
+  }
   try{
-    const msg = await client.messages.create({
+    const peticion = {
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: system,
+      /* Prompt caching: el Método 3·2·1 (miles de tokens) se cachea 5 min
+         → las llamadas repetidas con las mismas secciones pagan ~10 %. */
+      system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
+      /* Generaciones cortas y estructuradas: sin razonamiento extendido
+         (menos latencia y costo; en sonnet-5 lo adaptativo es el default). */
+      thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: user }]
-    });
+    };
+    /* Structured outputs (G2): con schema, la API garantiza JSON válido
+       con esa forma exacta — adiós al parseo heurístico del original. */
+    if (schema) peticion.output_config = { format: { type: 'json_schema', schema } };
+    const msg = await client.messages.create(peticion);
     const text = (msg.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
     return json(res, 200, { text });
   }catch(e){

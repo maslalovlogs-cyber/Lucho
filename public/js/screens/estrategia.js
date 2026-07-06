@@ -3,6 +3,7 @@ import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
 import { DIST_SEMESTRAL, nivelPresupuesto } from '../presupuesto.js';
+import { ETAPA } from '../schemas.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S3 — js/screens/estrategia.js · PANTALLA 3: Estrategia
@@ -75,7 +76,7 @@ const S_Estrategia = {
         c.estrategia[d.k] = await AI.json(
           AI.system(d.kb, 'Diseñas el plan de "' + d.label + '" para este cliente.'),
           AI.clienteCtx(c) + '\n' + d.extra +
-          '\nDevuelve JSON: {"mision":str máx 25 palabras,"objetivos":[3 str medibles y específicos de este negocio],"kpi":[3-4 str con metas numéricas del método],"cronograma":[{"periodo":str,"foco":str máx 10 palabras,"acciones":[2-3 str cortos]}],"tareas":[3-4 str operativas],"pauta":str máx 25 palabras sobre cómo usar el presupuesto de la etapa}');
+          '\nDevuelve JSON: {"mision":str máx 25 palabras,"objetivos":[3 str medibles y específicos de este negocio],"kpi":[3-4 str con metas numéricas del método],"cronograma":[{"periodo":str,"foco":str máx 10 palabras,"acciones":[2-3 str cortos]}],"tareas":[3-4 str operativas],"pauta":str máx 25 palabras sobre cómo usar el presupuesto de la etapa}', ETAPA);
         Store.save();
       }
       App.refresh(); UI.toast('Estrategia de 6 meses lista');

@@ -2,6 +2,7 @@ import { Store } from '../store.js';
 import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
+import { PLAN_SEMANA } from '../schemas.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S5 — js/screens/calendario.js · PANTALLA 5: Calendario
@@ -125,8 +126,8 @@ const S_Cal = {
       const res = await AI.json(
         AI.system(['operativo','principios'], 'Programas la semana siguiendo el calendario semanal tipo del método (lunes educativo, miércoles identidad, jueves serie/carrusel, viernes storytelling/prueba social, sábado comunidad).'),
         'Etapa actual: Etapa ' + Store.etapaDe(c.mes) + '. Piezas disponibles: ' + JSON.stringify(pend.map(p => ({ id:p.id, titulo:p.titulo, formato:p.formato, pilar:p.pilar }))) +
-        '\nElige 4-5 piezas y asígnales día (0=lunes … 6=domingo) según la plantilla. Devuelve JSON: [{"id":str,"dia":0-6}]');
-      (Array.isArray(res) ? res : []).forEach(a => {
+        '\nElige 4-5 piezas y asígnales día (0=lunes … 6=domingo) según la plantilla. Devuelve JSON: {"asignaciones":[{"id":str,"dia":0-6}]}', PLAN_SEMANA);
+      (res.asignaciones || []).forEach(a => {
         const it = pend.find(p => p.id === a.id); if (!it) return;
         const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + (+a.dia || 0));
         c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: this.iso(d), publicado:false });

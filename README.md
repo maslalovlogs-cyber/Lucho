@@ -36,7 +36,7 @@ AUDITORIA.md               Auditoría técnica completa (Fase 1)
 ```
 
 - **Datos:** viven en el navegador (IndexedDB), por dispositivo. Respaldo manual en la pantalla **Método → Datos** (exportar/importar JSON). La migración a base de datos multiusuario está prevista en el roadmap.
-- **IA:** el navegador nunca habla con Anthropic directamente; llama a `/api/ai` y el servidor hace la petición con el SDK oficial (modelo `claude-sonnet-4-6`).
+- **IA:** el navegador nunca habla con Anthropic directamente; llama a `/api/ai` y el servidor hace la petición con el SDK oficial (modelo `claude-sonnet-5`, salidas estructuradas + prompt caching).
 - **Actualizar el método sin tocar código:** pantalla **Método** → módulos de actualización y notas de la agencia (se inyectan en cada llamada de IA).
 
 ## Pruebas
@@ -60,5 +60,5 @@ La prueba de humo verifica: render de las 10 pantallas, creación de cliente, **
 | 2. Arquitectura (separación en módulos, mini-backend, IndexedDB) | ✅ este commit |
 | 3. Corrección de errores (G3–G6, M1–M8 de la auditoría) | ✅ |
 | 4. Refactorización (duplicaciones, código muerto) | ✅ |
-| 5. Optimización IA (structured outputs, streaming, prompt caching) | pendiente |
+| 5. Optimización IA (structured outputs, lotes, prompt caching) | ✅ |
 | 6–10. UX/UI · Rendimiento · Seguridad · Documentación · Pruebas | pendientes |

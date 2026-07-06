@@ -2,6 +2,7 @@ import { Store } from '../store.js';
 import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
+import { SECUENCIA } from '../schemas.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S8 — js/screens/autos.js · PANTALLA 8: Automatizaciones
@@ -49,7 +50,7 @@ const S_Autos = {
       const res = await AI.json(
         AI.system(['etapa3','principios'], 'Diseñas automatizaciones de conversión con los guiones y reglas del método (speed-to-lead <5 min, 1 pregunta calificadora, cadencia 24-72-7, cierre asumido con 2 opciones).'),
         AI.clienteCtx(c) + '\nCanal: ' + canal + '. Objetivo: ' + obj + '. Palabra clave: ' + (kw || 'proponla tú') + '.' +
-        '\nDevuelve JSON: {"nombre":str,"canal":str corto,"pasos":[4-6 objetos {"paso":str qué ocurre máx 10 palabras,"mensaje":str texto LITERAL del mensaje con el tono del negocio (usa [Nombre] como variable),"nota":str opcional máx 12 palabras}],"cadencia":str máx 30 palabras qué se envía a las 24h, 72h y día 7}');
+        '\nDevuelve JSON: {"nombre":str,"canal":str corto,"pasos":[4-6 objetos {"paso":str qué ocurre máx 10 palabras,"mensaje":str texto LITERAL del mensaje con el tono del negocio (usa [Nombre] como variable),"nota":str opcional máx 12 palabras}],"cadencia":str máx 30 palabras qué se envía a las 24h, 72h y día 7}', SECUENCIA);
       res.id = Store.uid();
       c.autos.push(res); Store.save(); App.refresh(); UI.toast('Secuencia lista');
     }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }

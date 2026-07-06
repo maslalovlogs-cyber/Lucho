@@ -30,17 +30,18 @@ const AI = {
      api.anthropic.com desde el navegador (sin key → 401/CORS y riesgo
      de exponer la key). Ahora habla con nuestro backend /api/ai, que
      custodia la API key en el servidor. */
-  async raw(system, user){
+  async raw(system, user, schema){
     const headers = { 'Content-Type': 'application/json' };
     const pass = sessionStorage.getItem('m321:pass');
     if (pass) headers['x-app-password'] = pass;
     const res = await fetch('/api/ai', {
       method: 'POST', headers,
-      body: JSON.stringify({ system: system, user: user })
-    });
+      body: JSON.stringify({ system: system, user: user, schema: schema }),
+      signal: AbortSignal.timeout(180000) // la petición no puede colgarse indefinidamente
+    }).catch(e => { throw new Error(e.name === 'TimeoutError' ? 'La generación tardó demasiado; reintenta' : 'Sin conexión con el servidor'); });
     if (res.status === 401){
       const intento = prompt('Esta instalación está protegida. Escribe la contraseña de acceso:');
-      if (intento){ sessionStorage.setItem('m321:pass', intento); return this.raw(system, user); }
+      if (intento){ sessionStorage.setItem('m321:pass', intento); return this.raw(system, user, schema); }
       throw new Error('Acceso no autorizado');
     }
     const data = await res.json().catch(() => ({}));
@@ -56,7 +57,11 @@ const AI = {
     if (s < 0 || e < 0) throw new Error('sin JSON');
     return JSON.parse(t.slice(s, e + 1));
   },
-  async json(system, user){
+  /* Fase 5: con schema (structured outputs) la respuesta ES JSON válido
+     garantizado por la API → JSON.parse directo. El parseo heurístico
+     queda solo como camino de compatibilidad sin schema. */
+  async json(system, user, schema){
+    if (schema) return JSON.parse(await this.raw(system, user, schema));
     let txt = await this.raw(system, user);
     try{ return this.parse(txt); }
     catch(e){

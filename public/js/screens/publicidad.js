@@ -3,6 +3,7 @@ import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
 import { DIST_SEMESTRAL, nivelPresupuesto } from '../presupuesto.js';
+import { CAMPANA } from '../schemas.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S7 — js/screens/publicidad.js · PANTALLA 7: Publicidad
@@ -55,7 +56,7 @@ const S_Ads = {
       const res = await AI.json(
         AI.system(['principios','etapa' + Store.etapaDe(c.mes), 'operativo'], 'Eres el media buyer del método. Diseñas la estructura publicitaria del mes actual.'),
         AI.clienteCtx(c) + '\nMes del programa: ' + c.mes + '. Creativos ganadores disponibles: ' + (ganadores.length ? JSON.stringify(ganadores) : 'ninguno aún (respeta el Principio 1: sin ICG ≥ 1.2 no hay prospección con presupuesto significativo)') +
-        '\nDevuelve JSON: {"nombre":str nombre de la campaña del mes,"objetivo":str máx 15 palabras,"presupuesto":str cómo se reparte el monto del mes,"campanas":[2-4 objetos {"nombre":str,"objetivoPlataforma":str p.ej. interacción/video views/conversiones,"audiencia":str específica,"pct":str "40%","creativo":str qué pieza o derivado,"kpi":str meta numérica}],"remarketing":str máx 30 palabras públicos por temperatura y secuencia,"reglas":str máx 25 palabras (frecuencia, rotación, cuándo apagar)}');
+        '\nDevuelve JSON: {"nombre":str nombre de la campaña del mes,"objetivo":str máx 15 palabras,"presupuesto":str cómo se reparte el monto del mes,"campanas":[2-4 objetos {"nombre":str,"objetivoPlataforma":str p.ej. interacción/video views/conversiones,"audiencia":str específica,"pct":str "40%","creativo":str qué pieza o derivado,"kpi":str meta numérica}],"remarketing":str máx 30 palabras públicos por temperatura y secuencia,"reglas":str máx 25 palabras (frecuencia, rotación, cuándo apagar)}', CAMPANA);
       res.id = Store.uid(); res.mes = c.mes;
       c.campanas.push(res); Store.save(); App.refresh(); UI.toast('Campaña del mes diseñada');
     }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }

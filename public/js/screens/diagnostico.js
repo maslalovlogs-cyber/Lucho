@@ -2,6 +2,7 @@ import { Store } from '../store.js';
 import { UI } from '../ui.js';
 import { App } from '../app.js';
 import { AI } from '../ai.js';
+import { DX1, DX2, DX3 } from '../schemas.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO S2 — js/screens/diagnostico.js · PANTALLA 2: Diagnóstico
@@ -99,17 +100,17 @@ const S_Dx = {
       const p1 = await AI.json(
         AI.system(['principios','matriz','evitar'], 'Estás haciendo el diagnóstico de onboarding (Semana 0).'),
         AI.clienteCtx(c) + (falta.length ? '\nCampos sin responder: ' + falta.join(', ') + '.' : '') +
-        '\nDevuelve JSON: {"foda":{"fortalezas":[3-4 str],"oportunidades":[3-4],"debilidades":[3-4],"amenazas":[3]},"dolores":[4 str cortos del cliente final],"deseos":[4],"objeciones":[4],"preguntas":[2-4 preguntas inteligentes SOLO sobre información faltante o ambigua de la ficha; si nada falta, []]}. Frases de máx 14 palabras.');
+        '\nDevuelve JSON: {"foda":{"fortalezas":[3-4 str],"oportunidades":[3-4],"debilidades":[3-4],"amenazas":[3]},"dolores":[4 str cortos del cliente final],"deseos":[4],"objeciones":[4],"preguntas":[2-4 preguntas inteligentes SOLO sobre información faltante o ambigua de la ficha; si nada falta, []]}. Frases de máx 14 palabras.', DX1);
       prog.innerHTML = UI.thinking('Paso 2/3 · Buyer persona y mapa de empatía…');
       const p2 = await AI.json(
         AI.system(['principios','matriz'], 'Construyes el buyer persona del onboarding.'),
         AI.clienteCtx(c) + '\nDolores detectados: ' + JSON.stringify(p1.dolores) +
-        '\nDevuelve JSON: {"persona":{"nombre":str,"edad":str,"ocupacion":str,"contexto":str máx 30 palabras,"dolorPrincipal":str,"motivacion":str,"canales":str},"empatia":{"piensaSiente":str,"ve":str,"oye":str,"diceHace":str,"esfuerzos":str,"resultados":str}}. Cada campo de empatía máx 15 palabras.');
+        '\nDevuelve JSON: {"persona":{"nombre":str,"edad":str,"ocupacion":str,"contexto":str máx 30 palabras,"dolorPrincipal":str,"motivacion":str,"canales":str},"empatia":{"piensaSiente":str,"ve":str,"oye":str,"diceHace":str,"esfuerzos":str,"resultados":str}}. Cada campo de empatía máx 15 palabras.', DX2);
       prog.innerHTML = UI.thinking('Paso 3/3 · Niveles, probabilidad y Matriz de Adaptación…');
       const p3 = await AI.json(
         AI.system(['principios','matriz','algoritmos'], 'Cierras el diagnóstico configurando la Matriz de Adaptación del método para este negocio.'),
         AI.clienteCtx(c) +
-        '\nDevuelve JSON: {"niveles":{"competencia":0-10,"autoridad":0-10,"contenido":0-10,"marca":0-10,"ventas":0-10,"confianza":0-10},"probabilidad":40-95,"probabilidadNota":str máx 22 palabras justificando,"matriz":{"plataformaPrimaria":str,"plataformaSecundaria":str,"pilares":[4 pilares concretos para ESTE negocio],"ctaPrincipal":str,"cicloVenta":str,"particularidades":str máx 25 palabras (regulación, ética, estacionalidad si aplica)}}');
+        '\nDevuelve JSON: {"niveles":{"competencia":0-10,"autoridad":0-10,"contenido":0-10,"marca":0-10,"ventas":0-10,"confianza":0-10},"probabilidad":40-95,"probabilidadNota":str máx 22 palabras justificando,"matriz":{"plataformaPrimaria":str,"plataformaSecundaria":str,"pilares":[4 pilares concretos para ESTE negocio],"ctaPrincipal":str,"cicloVenta":str,"particularidades":str máx 25 palabras (regulación, ética, estacionalidad si aplica)}}', DX3);
       c.diagnostico = Object.assign({}, p1, p2, p3);
       Store.save(); App.refresh(); UI.toast('Diagnóstico generado con el Método 3·2·1');
     }catch(e){
