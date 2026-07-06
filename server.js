@@ -20,6 +20,7 @@
      PORT               opcional (3000 por defecto)
    ════════════════════════════════════════════════════════════════ */
 import http from 'node:http';
+import { gzipSync } from 'node:zlib';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,8 +39,13 @@ const MIME = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.woff2': 'font/woff2'
 };
+/* Fase 7: caché HTTP por tipo. El HTML nunca se cachea (revalida en cada
+   visita); css/js una hora (cambian con cada release); fuentes una semana. */
+const CACHE = { '.html': 'no-cache', '.css': 'public, max-age=3600', '.js': 'public, max-age=3600', '.woff2': 'public, max-age=604800' };
+const COMPRIMIBLE = new Set(['.html', '.css', '.js', '.json', '.svg']);
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ timeout: 120000 }) : null; // ms; el SDK reintenta 429/5xx solo
 
@@ -115,8 +121,17 @@ async function estatico(req, res){
     return json(res, 403, { error: 'Ruta no permitida' });
   }
   try{
-    const data = await readFile(abs);
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(abs)] || 'application/octet-stream' });
+    let data = await readFile(abs);
+    const ext = path.extname(abs);
+    const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream' };
+    if (CACHE[ext]) headers['Cache-Control'] = CACHE[ext];
+    /* Fase 7: gzip para texto (el JS+CSS de la app pasa de ~95 KB a ~25 KB) */
+    if (COMPRIMIBLE.has(ext) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')){
+      data = gzipSync(data);
+      headers['Content-Encoding'] = 'gzip';
+      headers['Vary'] = 'Accept-Encoding';
+    }
+    res.writeHead(200, headers);
     res.end(data);
   }catch(e){
     json(res, 404, { error: 'No encontrado' });
