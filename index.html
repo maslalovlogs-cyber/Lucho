@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Método 3·2·1 — Inteligencia Estratégica</title>
+<!--
+════════════════════════════════════════════════════════════════════
+  MÉTODO 3·2·1 · Aplicación de Inteligencia Estratégica
+  ────────────────────────────────────────────────────────────────
+  Arquitectura modular (cada bloque marcado "MÓDULO" equivale a un
+  archivo independiente si se separa el proyecto):
+
+    MÓDULO KB      → js/kb.js          Base de conocimiento (Método 3·2·1)
+    MÓDULO STORE   → js/store.js       Estado + persistencia
+    MÓDULO AI      → js/ai.js          Motor de IA (estratega senior)
+    MÓDULO ICG     → js/icg.js         Cálculo del Índice de Contenido Ganador
+    MÓDULO UI      → js/ui.js          Helpers de interfaz
+    MÓDULO S1..S10 → js/screens/*.js   Pantallas
+    MÓDULO ROUTER  → js/app.js         Navegación e inicio
+
+  Para agregar plataformas nuevas (TikTok Shop, Threads, YouTube,
+  Pinterest, LinkedIn) o cambios de algoritmo: pantalla "Método"
+  → Módulos de actualización. No se toca el código.
+════════════════════════════════════════════════════════════════════
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════ styles/tokens.css ═══════════ */
+:root{
+  --ink:#0B0D12;            /* negro estructural */
+  --ink-2:#141821;
+  --ink-3:#1C212D;
+  --canvas:#F5F6F8;         /* lienzo gris */
+  --surface:#FFFFFF;
+  --border:#E5E7EC;
+  --border-2:#D8DBE2;
+  --text:#161A22;
+  --muted:#6A7284;
+  --faint:#98A0B0;
+  --blue:#1A56F0;           /* azul del sistema */
+  --blue-deep:#0F3FBE;
+  --blue-tint:#EDF2FF; --blue-t:#EDF2FF;
+  --blue-line:#C7D6FB;
+  --green:#0E9F6E; --green-t:#E7F7F0;
+  --amber:#C77E0A; --amber-t:#FBF3E4;
+  --red:#D92D20;   --red-t:#FDEEEC;
+  --gold:#8A6D1E;  --gold-t:#F8F2DE;
+  --r:10px; --r-sm:7px;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+  --shadow-lg:0 12px 32px -8px rgba(11,13,18,.18),0 4px 10px rgba(11,13,18,.06);
+  --sans:'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'Geist Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--sans);background:var(--canvas);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+::selection{background:var(--blue-tint)}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit;font-size:13.5px;color:var(--text)}
+
+/* ═══════════ styles/layout.css ═══════════ */
+.app{display:grid;grid-template-columns:236px 1fr;height:100vh;overflow:hidden}
+.sidebar{background:var(--ink);color:#B6BCC9;display:flex;flex-direction:column;overflow-y:auto}
+.brand{padding:20px 18px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #1E2430}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:var(--blue);display:grid;place-items:center;font-family:var(--mono);font-weight:600;font-size:12px;color:#fff;letter-spacing:-.5px;flex-shrink:0}
+.brand h1{font-size:14px;font-weight:600;color:#F2F4F8;letter-spacing:-.01em}
+.brand span{display:block;font-size:10.5px;color:#6A7284;font-weight:400;font-family:var(--mono);letter-spacing:.02em}
+.nav{padding:12px 10px;flex:1}
+.nav-label{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5A6272;padding:10px 10px 6px}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;background:transparent;color:#AEB5C4;border-radius:7px;font-size:13.5px;font-weight:500;text-align:left;transition:background .12s,color .12s}
+.nav button svg{width:16px;height:16px;flex-shrink:0;opacity:.75}
+.nav button:hover{background:#171C27;color:#E8EBF1}
+.nav button.on{background:#1C2331;color:#fff}
+.nav button.on svg{opacity:1;color:var(--blue-line)}
+.nav button .dot{margin-left:auto;width:6px;height:6px;border-radius:50%;background:var(--blue)}
+/* Riel 3·2·1 — firma visual: etapa viva del cliente */
+.rail{margin:10px 16px 18px;padding:14px;border:1px solid #1E2430;border-radius:10px;background:#10141C}
+.rail h4{font-family:var(--mono);font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:#5A6272;margin-bottom:10px}
+.rail-row{display:flex;align-items:center;gap:10px;padding:5px 0}
+.rail-row .num{font-family:var(--mono);font-size:15px;font-weight:600;width:18px;color:#39404F}
+.rail-row .bar{flex:1;height:4px;border-radius:2px;background:#232A38;position:relative;overflow:hidden}
+.rail-row .bar i{position:absolute;inset:0;width:0;background:var(--blue);border-radius:2px;transition:width .4s}
+.rail-row.live .num{color:#fff}
+.rail-row .tag{font-size:10.5px;color:#6A7284;width:86px}
+.rail-row.live .tag{color:#C7D6FB}
+.rail-mes{margin-top:10px;font-family:var(--mono);font-size:11px;color:#8892A4}
+.main{display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 24px;flex-shrink:0}
+.topbar .crumb{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.topbar .sep{color:var(--faint)}
+.client-pick{display:flex;align-items:center;gap:8px;margin-left:auto}
+.client-pick select{padding:7px 30px 7px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-weight:500;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236A7284' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.mes-step{display:flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:8px;padding:4px 6px;background:var(--surface)}
+.mes-step button{border:0;background:transparent;width:22px;height:22px;border-radius:5px;color:var(--muted);font-size:13px}
+.mes-step button:hover{background:var(--canvas)}
+.mes-step b{font-family:var(--mono);font-size:11.5px;font-weight:500;color:var(--text);white-space:nowrap}
+.save-dot{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.view{flex:1;overflow-y:auto;padding:28px 32px 64px}
+.wrap{max-width:1140px;margin:0 auto}
+
+/* ═══════════ styles/components.css ═══════════ */
+.h-page{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+.h-page h2{font-size:21px;font-weight:700;letter-spacing:-.02em}
+.h-page p{color:var(--muted);font-size:13.5px;margin-top:3px;max-width:640px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+.card-h{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-h h3{font-size:14px;font-weight:600;letter-spacing:-.01em}
+.card-h .hint{font-size:12px;color:var(--muted);font-weight:400}
+.card-b{padding:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:1000px){.grid2,.grid3,.grid4{grid-template-columns:1fr}.app{grid-template-columns:200px 1fr}}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:8px;border:1px solid var(--border-2);background:var(--surface);font-size:13px;font-weight:500;color:var(--text);transition:.12s}
+.btn:hover{border-color:#C4C9D4;background:#FAFBFC}
+.btn.pri{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.pri:hover{background:var(--blue-deep);border-color:var(--blue-deep)}
+.btn.ink{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.ink:hover{background:var(--ink-3)}
+.btn.sm{padding:5px 10px;font-size:12px;border-radius:7px}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.btn.ghost:hover{background:var(--canvas);color:var(--text)}
+.btn.danger{color:var(--red)}
+.btn:disabled{opacity:.5;cursor:default}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px}
+.field label small{font-weight:400;color:var(--faint);margin-left:4px}
+.field input,.field select,.field textarea{width:100%;padding:8px 11px;border:1px solid var(--border-2);border-radius:8px;background:var(--surface);transition:border .12s,box-shadow .12s}
+.field textarea{min-height:66px;resize:vertical}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-tint)}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:0 16px}
+.fgrid.c2{grid-template-columns:1fr 1fr}
+@media(max-width:900px){.fgrid,.fgrid.c2{grid-template-columns:1fr}}
+.fs-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:20px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.fs-title:first-child{margin-top:0}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;line-height:1.7;white-space:nowrap}
+.chip.blue{background:var(--blue-tint);color:var(--blue-deep)}
+.chip.green{background:var(--green-t);color:var(--green)}
+.chip.amber{background:var(--amber-t);color:var(--amber)}
+.chip.red{background:var(--red-t);color:var(--red)}
+.chip.gold{background:var(--gold-t);color:var(--gold)}
+.chip.gray{background:#EEF0F4;color:var(--muted)}
+.chip.line{background:var(--surface);border:1px solid var(--border-2);color:var(--muted);font-weight:500}
+.kpi{padding:16px 18px}
+.kpi .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.kpi .val{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:11.5px;color:var(--faint);margin-top:3px}
+.empty{padding:52px 24px;text-align:center;color:var(--muted)}
+.empty .art{width:44px;height:44px;margin:0 auto 14px;border-radius:12px;background:var(--blue-tint);display:grid;place-items:center;color:var(--blue);font-family:var(--mono);font-weight:600}
+.empty h4{font-size:14.5px;font-weight:600;color:var(--text);margin-bottom:4px}
+.empty p{font-size:13px;max-width:420px;margin:0 auto 16px}
+table.tb{width:100%;border-collapse:collapse;font-size:13px}
+table.tb th{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:9px 12px;border-bottom:1px solid var(--border);font-weight:500}
+table.tb td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top}
+table.tb tr:last-child td{border-bottom:0}
+table.tb .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.bar-meter{display:flex;align-items:center;gap:10px}
+.bar-meter .track{flex:1;height:6px;border-radius:3px;background:#EDEFF3;overflow:hidden}
+.bar-meter .track i{display:block;height:100%;border-radius:3px;background:var(--blue);transition:width .5s}
+.bar-meter b{font-family:var(--mono);font-size:12px;width:34px;text-align:right;font-variant-numeric:tabular-nums}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px}
+.note{background:var(--blue-tint);border:1px solid var(--blue-line);border-radius:var(--r-sm);padding:10px 13px;font-size:12.5px;color:var(--blue-deep);margin-bottom:14px}
+.warn{background:var(--amber-t);border:1px solid #EED9AC;border-radius:var(--r-sm);padding:10px 13px;font-size:12.5px;color:var(--amber);margin-bottom:14px}
+.thinking{display:flex;align-items:center;gap:11px;padding:14px 16px;border:1px dashed var(--border-2);border-radius:var(--r);color:var(--muted);font-size:13px;margin:14px 0;background:#FBFCFD}
+.spin{width:15px;height:15px;border:2px solid var(--blue-tint);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--ink);color:#fff;padding:10px 16px;border-radius:9px;font-size:13px;box-shadow:var(--shadow-lg);animation:tIn .25s}
+@keyframes tIn{from{opacity:0;transform:translateY(8px)}}
+.modal-bg{position:fixed;inset:0;background:rgba(11,13,18,.45);z-index:150;display:grid;place-items:center;padding:20px}
+.modal{background:var(--surface);border-radius:14px;box-shadow:var(--shadow-lg);width:100%;max-width:480px;max-height:86vh;overflow-y:auto}
+.modal .card-h{position:sticky;top:0;background:var(--surface);z-index:1;border-radius:14px 14px 0 0}
+.modal .x{margin-left:auto;border:0;background:transparent;color:var(--muted);font-size:16px;width:26px;height:26px;border-radius:6px}
+.modal .x:hover{background:var(--canvas)}
+details.acc{border:1px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;background:var(--surface)}
+details.acc summary{padding:11px 14px;cursor:pointer;font-weight:600;font-size:13px;list-style:none;display:flex;align-items:center;gap:9px}
+details.acc summary::-webkit-details-marker{display:none}
+details.acc summary .car{margin-left:auto;color:var(--faint);transition:transform .15s;font-size:11px}
+details.acc[open] summary .car{transform:rotate(90deg)}
+details.acc .acc-b{padding:2px 14px 14px;font-size:13px;color:#333B49}
+.script{white-space:pre-wrap;background:#F8F9FB;border:1px solid var(--border);border-radius:var(--r-sm);padding:12px;font-size:12.5px;line-height:1.65}
+.meta-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px 14px;margin-top:10px}
+.meta-grid .m b{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);font-weight:500}
+.meta-grid .m span{font-size:12.5px}
+/* calendario */
+.cal-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.cal-head h3{font-size:15px;font-weight:600;min-width:170px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:var(--border)}
+.cal-grid{gap:1px}
+.cal-dow{background:#FAFBFC;padding:7px 10px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.cal-day{background:var(--surface);min-height:104px;padding:6px;position:relative}
+.cal-day.out{background:#FAFBFC}
+.cal-day .dnum{font-family:var(--mono);font-size:11px;color:var(--muted);padding:2px 4px}
+.cal-day.today .dnum{background:var(--blue);color:#fff;border-radius:5px;display:inline-block}
+.cal-day.over{outline:2px solid var(--blue);outline-offset:-2px;background:var(--blue-tint)}
+.cal-it{background:var(--blue-tint);border:1px solid var(--blue-line);border-radius:6px;padding:4px 7px;font-size:11px;font-weight:500;color:var(--blue-deep);margin-top:4px;cursor:grab;line-height:1.35}
+.cal-it.pub{background:var(--green-t);border-color:#BCE6D4;color:var(--green);text-decoration:none}
+.cal-it .f{display:block;font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:.05em;opacity:.75}
+.cal-it .acts{display:none;gap:2px;margin-top:3px}
+.cal-it:hover .acts{display:flex}
+.cal-it .acts button{border:0;background:rgba(255,255,255,.7);border-radius:4px;font-size:10px;padding:1px 5px;color:inherit}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.week-col{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);min-height:220px;padding:8px}
+.week-col h5{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.week-col.today{border-color:var(--blue-line);background:#FBFCFF}
+/* diagnóstico */
+.foda{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.foda .q{border:1px solid var(--border);border-radius:var(--r-sm);padding:13px}
+.foda .q h5{font-size:12px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+.foda .q ul{margin-left:16px;font-size:12.5px;color:#333B49}
+.foda .q li{margin-bottom:4px}
+.gauge{display:flex;align-items:center;gap:16px}
+.gauge .num{font-family:var(--mono);font-size:38px;font-weight:600;letter-spacing:-.04em;font-variant-numeric:tabular-nums}
+/* icg */
+.icg-hero{font-family:var(--mono);font-weight:600;font-variant-numeric:tabular-nums}
+.seg{display:inline-flex;border:1px solid var(--border-2);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:6px 13px;font-size:12.5px;font-weight:500;color:var(--muted)}
+.seg button.on{background:var(--ink);color:#fff}
+svg.chart text{font-family:var(--mono);font-size:9.5px;fill:var(--faint)}
+.alert-it{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);font-size:13px}
+.alert-it:last-child{border-bottom:0}
+.alert-it .ic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font-size:12px;flex-shrink:0}
+.alert-it b{display:block;font-size:12.5px}
+.alert-it p{color:var(--muted);font-size:12px;margin-top:1px}
+.login-hint{font-size:11.5px;color:var(--faint);margin-top:8px}
+.btn:focus-visible,.nav button:focus-visible,.seg button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (hover:none){.cal-it .acts{display:flex}.cal-it .acts button{padding:3px 8px;font-size:12px}}
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .sidebar{flex-direction:row;align-items:center;padding:0 6px;overflow-x:auto;overflow-y:hidden}
+  .brand{padding:10px 8px;border-bottom:0}
+  .brand h1,.brand span{display:none}
+  .nav{display:flex;align-items:center;padding:8px 2px;gap:2px;flex:1}
+  .nav-label{display:none}
+  .nav button{white-space:nowrap;padding:7px 9px;font-size:12.5px}
+  .nav button .dot{display:none}
+  .rail{display:none}
+  .topbar{padding:0 12px;gap:8px}
+  .topbar .crumb,.save-dot{display:none}
+  .view{padding:16px 12px 56px}
+  .h-page{flex-direction:column;align-items:stretch}
+  .cal-day{min-height:76px}
+  .week-grid{grid-template-columns:1fr;gap:8px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">3·2·1</div>
+      <div><h1>Método 3·2·1</h1><span>Estratega de agencia</span></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="rail" id="rail"></div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <span class="crumb" id="crumb">Clientes</span>
+      <div class="client-pick">
+        <div class="mes-step" id="mesStep" style="display:none">
+          <button id="mesDown" title="Mes anterior del programa">−</button>
+          <b id="mesLbl">Mes 1 · Etapa 1</b>
+          <button id="mesUp" title="Mes siguiente del programa">+</button>
+        </div>
+        <select id="clientSel" title="Cliente activo"></select>
+        <span class="save-dot" id="saveDot"></span>
+      </div>
+    </div>
+    <div class="view"><div class="wrap" id="view"></div></div>
+  </div>
+</div>
+<div class="toast-wrap" id="toasts"></div>
+<div id="modalHost"></div>
+<script>
+'use strict';
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO KB — js/kb.js
+   Base de conocimiento permanente: Método 3·2·1 v1.0 (julio 2026),
+   condensado en secciones operativas. Cada llamada a la IA inyecta
+   solo las secciones relevantes + los módulos de actualización que
+   el usuario registre en la pantalla "Método".
+   ════════════════════════════════════════════════════════════════ */
+const KB = {
+  version: '1.0 · julio 2026',
+  sec: {
+
+principios: `PRINCIPIOS RECTORES (ante cualquier duda, mandan):
+1. El orgánico investiga, el pago amplifica. Ninguna pieza recibe presupuesto significativo sin ICG >= 1.2 orgánico (excepción: remarketing y ofertas de Etapa 3 derivadas de ganadores).
+2. Los algoritmos no se hackean, se alimentan: se fabrican señales reales (retención, envíos por DM, guardados, comentarios profundos). Cada táctica produce una señal específica.
+3. La venta es la última ficha del dominó: Atención → Interés → Confianza → Deseo → Acción → Lealtad. La oferta agresiva vive casi solo en el mes 6.
+4. Decisiones por datos, no por gusto: decide el ICG, nunca la opinión.
+5. Universalidad por variables, no por recetas: proceso idéntico para todos; pilares, plataforma, tono, CTA y ciclo de venta se configuran con la Matriz de Adaptación.
+ESTRUCTURA: Etapa 1 RECONOCIMIENTO (meses 1-3, ¿qué contenido funciona para ESTE negocio?) · Etapa 2 CONSIDERACIÓN (meses 4-5, atención → confianza) · Etapa 3 CONVERSIÓN (mes 6, confianza → ventas + LTV).
+Presupuesto publicitario semestral: M1 5% · M2 10% · M3 15% · M4 20% · M5 20% · M6 30%. En meses 1-2 no se prometen ventas: se prometen datos, sistema y posicionamiento.`,
+
+algoritmos: `ALGORITMOS 2026 (los tres premian retención real, conversación genuina y originalidad; castigan señales infladas, reposts y contenido genérico):
+INSTAGRAM: sistemas separados Feed/Reels/Stories/Explorar. Señales top: watch time (la decisión de quedarse ocurre en ~1.7s; gancho 1-3s = variable más importante), envíos por DM por alcance (vale varias veces más que un like), likes/alcance (pesa ante seguidores). Vistas = métrica unificada. Guardados y clics a perfil = alta intención. Penaliza reposts/marcas de agua. Prioriza contenido humano original sobre 100% IA. SEO interno: keyword hablada y escrita en primeros 3s y primera línea del caption; hashtags 3-5 relevantes. Carruseles re-muestran láminas y duplican-triplican alcance (con audio, más superficies). Reels cortos 7-15s con bucle = re-visualizaciones.
+FACEBOOK: motor de descubrimiento por IA (30-50% del feed es recomendado). Comentarios largos e hilos de 5+ intercambios multiplican distribución (responder cada comentario en la 1ª hora). Compartidos y guardados > likes. Videos = Reels, >70% watch-through multiplica. Consistencia temática: máx 2-3 territorios (lee ~9-12 posts). Grupos: 20-40% de alcance vs 2-6% de páginas. Encuestas rinden. Demografía 30-55+: reina para local, salud, inmobiliario, banca LATAM. Engagement bait penalizado.
+TIKTOK: grafo de intereses, cada video compite solo; prueba por oleadas (primero muestra a tus propios seguidores). Jerarquía: 1) watch time por impresión + finalización ~70% para viralidad (pesa tiempo absoluto retenido, no solo %; 60s al 80% > 15s al 95%), 2) loops/re-visualización (final que empalma con inicio), 3) compartidos DM y guardados, 4) profundidad de comentarios, 5) velocidad primera hora-24h (o muere en 200-800 vistas), 6) SEO de plataforma CRÍTICO: keyword dicha en voz alta primeros segundos + en pantalla + primeros 50 caracteres del caption + subtítulos corregidos, 7) autoridad temática de nicho. Videos 1-3 min con retención = distribución creciente. Sonidos en tendencia = contexto, no atajo.
+LECTURA: TikTok descubre en frío; Instagram convierte descubrimiento en relación y venta por DM; Facebook domina comunidad, 30+, intención local y grupos.`,
+
+prohibido: `PRÁCTICAS PROHIBIDAS (jamás recomendar, aunque el cliente lo pida): 30 hashtags (usar 3-5) · repostear con marca de agua · cuentas agregadoras/repost sin transformación · engagement bait ("dale like", "etiqueta y comparte para participar") · pods/compra de seguidores · follow-unfollow · publicar 2-3 veces al día por volumen (3-5 piezas semanales de alta señal > 14 de relleno) · el "horario mágico" como palanca principal (se optimiza en semana 9) · logo o intro institucional en los primeros segundos · "link en bio" como único CTA (usar palabra clave por comentario/DM con automatización) · contenido 100% IA sin capa humana · perseguir viralidad fuera del nicho · copiar tendencias sin adaptar (desajuste semántico).`,
+
+etapa1: `ETAPA 1 — RECONOCIMIENTO (meses 1-3). Misión: encontrar con evidencia el contenido ganador de ESTE negocio. No se persiguen ventas; se fabrican datos, alcance y memoria de marca.
+Semana 0 (onboarding): buyer persona + dolor principal, plataforma primaria/secundaria (Matriz), 4 pilares, Pixel/CAPI Meta y TikTok, perfil optimizado (bio keyword + propuesta de valor + CTA; destacadas: Empieza aquí/Servicios/Resultados/FAQ/Ubicación), línea base.
+4 PILARES UNIVERSALES: 1) Educación/Utilidad (reciprocidad+autoridad) 2) Entretenimiento/Identidad (compartibilidad+pertenencia) 3) Conexión/Humano (confianza parasocial) 4) Prueba/Producto en contexto (deseo+evidencia).
+FASE 1 EXPLORACIÓN (mes 1): 4 pilares × 3 ángulos de gancho = 12 hipótesis. 16 piezas (12 reels + 4 carruseles), 4/semana días alternados. Historias 3-5 diarias con arco (contexto → valor/BTS → interacción con sticker → cierre) + 1 caja de preguntas/semana. Reels 7-15s vs 20-30s, estructura Gancho(0-3s)→Desarrollo(1 idea)→Remate/loop, keyword hablada+escrita primeros 3s, subtítulos siempre. Carruseles de utilidad: portada-gancho, 6-10 láminas, penúltima resume, última CTA de guardar, con audio. Sin lives (salvo comunidad previa). Sin colaboraciones (construir "Lista 20" de aliados). Pauta: solo infraestructura + opcional 3-5 USD/día semanas 3-4 a la mejor pieza (interacción), ~5% del semestre. KPI: tasa de gancho 3s >= 60-70%, retención promedio, % alcance no-seguidores, guardados/alcance, compartidos/alcance. NADA se elimina el mes 1: solo se etiqueta (promete/neutra/débil); la poda llega con el primer ICG.
+FASE 2 ITERACIÓN (mes 2): sobreviven los 2 pilares y ganchos con mejor ICG; iteración profunda (duración, portada, edición, música). 16-18 piezas, 4-5/semana. Nace la primera SERIE con nombre y día fijo (hábito, anticipación). Variaciones sobre ganadores: mismo gancho/desarrollo distinto y viceversa; leer curvas de retención (el segundo exacto de fuga se corrige en edición). Reel de mayor guardado → carrusel y viceversa. 1 live Q&A 20-30 min (+3-5 clips). 1-2 colaboraciones Collab sin costo con negocio complementario. Pauta ~10%: video views/interacción a las 3 mejores piezas para validar en frío y construir públicos de viewers (futuro remarketing). KPI: retención +15% vs mes 1, no-seguidores >40% en reels, visitas perfil/alcance >3%, DMs semanales. Poda: pilar con ICG promedio <0.8 tras 6+ piezas → fuera (documentar aprendizaje). Ángulos ICG >= 1.2 → replicar ×3 en mes 3.
+FASE 3 VALIDACIÓN (mes 3): certificar 3-5 ESTRUCTURAS ganadoras (gancho+desarrollo+formato replicable, no piezas sueltas) con la REGLA DE 3: cada estructura se produce 3 veces con temas distintos; si las 3 sostienen ICG >= 1.3 → certificada. 16-18 piezas, 70% con estructuras candidatas. Historias de intención suave. 1-2 lives (uno colaborativo). Piloto influencer: 1 nano local por intercambio. Pauta ~15%: primer remarketing suave (engagers 30 días → prueba social) + tráfico a WhatsApp/perfil. KPI: >= 50% del mes con ICG > 1, 3-5 estructuras certificadas, alcance mensual +25% vs mes 1. ENTREGABLE: Banco de Contenido Ganador (estructuras certificadas con guion esqueleto, banco de ganchos con retención 3s, formato/duración/edición óptimos, horarios validados, temas top de guardado y compartido, aprendizajes negativos).`,
+
+icg: `ICG — ÍNDICE DE CONTENIDO GANADOR (corazón del método). Benchmark = MEDIANA (no promedio) de las últimas 15 piezas de la cuenta por métrica. Ratios por pieza: A alcance/mediana · R retención/mediana · C (compartidos/alcance)/mediana · G (guardados/alcance)/mediana · I ((visitas perfil+clics+DMs)/alcance)/mediana.
+ICG = 0.15·A + 0.30·R + 0.25·C + 0.15·G + 0.15·I
+(Etapa 3 "modo venta": se añade V = (conversiones/alcance)/mediana con peso 0.30 y los demás pesos se reescalan proporcionalmente.)
+DECISIÓN a 7 días: ICG >= 1.5 GANADOR ABSOLUTO (entra al Banco, replicar ×3, candidato a pauta) · 1.2-1.49 GANADOR (replicar ×3 para Regla de 3) · 0.8-1.19 NEUTRO (1 iteración cambiando SOLO el gancho; si no mejora, archivo) · < 0.8 DÉBIL (estructura descartada tras 2 intentos; documentar aprendizaje). Se mide a 72h (preliminar) y 7 días (decisión). Las medianas móviles responden siempre: ¿esta pieza rindió por encima o por debajo de lo normal de ESTA cuenta, hoy?`,
+
+ab: `PRUEBAS A/B — 12 SEMANAS. Reglas: 1 sola variable por prueba · mínimo 3 piezas por variante · lectura 72h, decisión 7 días · todo registrado (sin registro no hubo prueba) · orden de mayor a menor impacto.
+Sem 1-2 HOOKS: pregunta directa vs negación/error ("deja de hacer esto") vs resultado adelantado (mostrar el final primero) → retención 3s. Sem 3-4 FORMATOS: mismo tema reel vs carrusel → ICG comparado. Sem 5 DURACIÓN: 7-15s vs 20-30s vs 45-60s → tiempo total retenido+finalización. Sem 6 PORTADAS: rostro+beneficio <=5 palabras vs producto vs acción → CTR y alcance en Explorar. Sem 7 EDICIÓN: corte rápido con pattern interrupts 3-5s vs plano secuencia → segundo de fuga. Sem 8 AUDIO: tendencia adaptada vs voz propia+música vs solo voz → retención+loops. Sem 9 HORARIOS: 3 franjas → alcance primera hora. Sem 10 CTA: palabra clave vs "guárdalo" vs "envíaselo a…" vs pregunta → señal objetivo de cada CTA. Sem 11 ESTILO: selfie hablado vs cámara fija vs voz en off sobre b-roll. Sem 12 NARRATIVA: lista vs historia (contexto-conflicto-resolución) vs demostración → ICG completo.`,
+
+etapa2: `ETAPA 2 — CONSIDERACIÓN (meses 4-5). Ya NO se experimenta desde cero: 100% de la producción usa estructuras del Banco de Contenido Ganador + capa de confianza. Mix: 45% ganadoras optimizadas · 30% prueba social/confianza · 15% conexión/BTS · 10% oferta suave. 4-5 piezas/semana + historias diarias + 2 lives/mes. Pauta ~40% del semestre (meses 4-5): escalar ganadores en frío (video views/alcance), alimentar remarketing, primeras conversiones con oferta suave (agenda, catálogo, lead magnet).
+OPTIMIZACIÓN métrica por métrica (UNA métrica débil por pieza, una variable a la vez): CTR → portada rostro+beneficio <=5 palabras, brecha de curiosidad. Retención → cold open sin saludo, pattern interrupts cada 3-5s, eliminar silencios, anunciar clímax y cumplirlo, corregir el segundo exacto de fuga. Tiempo reproducción → alargar ganadores 15s→30-45s con densidad, series encadenadas, bucles. Comentarios → pregunta binaria final, hueco deliberado, opinión impopular suave, responder 100% en 60-120 min con respuestas que inviten réplica, fijar el mejor. Compartidos → humor de identidad del nicho, utilidad para terceros ("mándaselo a tu socio"), datos sorprendentes. Guardados → checklists, guías, plantillas + "guárdalo para cuando…". Conversiones → CTA palabra clave + DM automatizado, lead magnet alineado, enlace en historias.
+INFLUENCERS (solo con Banco en mano; amplifican mensajes probados, nunca experimentan): Nano 1K-10K ER 5-10% intercambio/30-150 USD → local, confianza; Micro 10K-100K ER 3-6% 100-1,000 USD → MEJOR ROI del método; Macro 100K-1M → lanzamientos; Celebridad → solo awareness masivo. Local presupuesto bajo: 3-5 nanos barter + 1 micro. Nacional medio: 5-10 micros ("lo veo en todas partes"). Alto: pirámide 1 macro : 5 micros : 15 nanos misma quincena. Checklist 8 filtros (descarta al fallar 2): afinidad de audiencia real, engagement real en comentarios, vistas/seguidores >= 10%, coherencia de marca, densidad publicitaria <30%, capacidad narrativa, historial con métricas, riesgo reputacional. Negociación: barter → producto+fee → fee+comisión/código → embajador 3-6 meses. Cláusulas siempre: whitelisting/Spark Ads 90 días, brief con libertad creativa (se entregan ganchos ganadores, jamás guion rígido), 2 revisiones, 50/50, exclusividad de categoría, etiquetado legal.
+UGC/PRUEBA SOCIAL (se fabrica, no se espera): pedir en el momento de máxima satisfacción con incentivo; QR con hashtag propio; concurso mensual; UGC creators pagados 50-200 USD/pieza para nichos que no publican; permiso escrito siempre. Testimonio P·S·R 30-60s: Problema → Solución → Resultado con dato concreto. Caso de éxito mini-documental 60-90s: contexto → conflicto → proceso → resultado con número → testimonio; versión reel + carrusel espejo. BTS = efecto pratfall. Autoridad = evidencia acumulativa (cifras vivas, certificaciones en contexto, medios, instituciones). Escalera de prueba social: reseñas → testimonios video → casos → cifras → validación de terceros.
+KPI cierre mes 5: retención +20% vs Etapa 1 · >= 25% del feed con prueba social · públicos de remarketing poblados por temperatura · DMs crecientes 4 semanas · CPL de oferta suave con línea base · sentimiento >= 90% neutro-positivo con objeciones documentadas (alimentan el FAQ del mes 6).`,
+
+etapa3: `ETAPA 3 — CONVERSIÓN (mes 6). Campaña de 4 semanas estructura lanzamiento. Mix del mes: 40% valor (nunca se apaga) · 30% prueba social · 30% oferta directa. Pauta ~30% del semestre en 30 días (25-35% a remarketing).
+SEM 1 PRE-LANZAMIENTO: teasers, cuenta regresiva, sembrar el problema, encuestas de interés (cada respuesta = lead etiquetado), apertura de lista de espera VIP (difusión/WhatsApp) con beneficio exclusivo. Pauta: calentamiento con prueba social a tibios, leads a la VIP.
+SEM 2 APERTURA: video de oferta (Problema → Solución → Oferta → Bonos → Garantía → CTA), live de lanzamiento con beneficio solo-live, storyselling diario (5-7 láminas con arco → link/DM). Pauta de conversión a plena potencia; VIP con acceso 24h antes.
+SEM 3 PRUEBA SOCIAL Y OBJECIONES: un testimonio/caso por día, pieza FAQ con las 5 objeciones documentadas, comparativas, "para quién SÍ / para quién NO". Remarketing secuencial: quien vio la oferta y no actuó recibe testimonios, no la misma oferta. Outreach por DM a quien comentó.
+SEM 4 CIERRE: urgencia real, últimas unidades/horas, bonos que expiran, contadores, live final. Recuperación: carritos, DMs sin cerrar, ofertas 1:1 por WhatsApp, remarketing al máximo.
+REMARKETING POR TEMPERATURA: Tibio (viewers 50%+ 30-60 días, seguidores sin interacción) → prueba social + recordatorio de problema, nunca venta al primer impacto. Caliente (engagers 30d, visitas perfil, web 14d, VIP) → oferta completa con bonos, frecuencia máx 4/sem rotando creativo. Muy caliente (carrito/registro, DM sin cierre, clics 7d) → urgencia + bono de cierre + garantía, nunca dejar enfriar >72h. Secuencia, no repetición: oferta → testimonio → FAQ → urgencia. Frecuencia >3-4 y CTR cae → rotar creativo, no subir presupuesto.
+OFERTA (por defecto: BONUS STACK — mismo precio + bonos de alto valor percibido y bajo costo marginal; el descuento directo erosiona margen y ancla precio). Otras: bundle (sube ticket), prueba/diagnóstico gratis (ticket alto, calificar al lead), garantía reforzada (miedo a equivocarse), edición/cohorte limitada (escasez estructural), financiamiento (ticket alto B2C). ESCASEZ ÉTICA: solo restricciones reales y verificables; el mensaje enfatiza LO QUE SE PIERDE ("el bono X desaparece el viernes").
+CTA (1 solo por pieza; verbo + beneficio + fricción mínima; palabra clave > link en bio): venta "Comenta PRECIO y te llega la info al DM" · agendar "Envía AGENDA por DM" · lead "Comenta GUÍA y te mando el PDF" · local "Muéstranos esta historia en caja" · compartir "Envíaselo a tu socio que sigue haciendo esto" · guardar "Guárdalo para tu próxima visita".
+LTV = ticket × frecuencia anual × años. 4 palancas: subir ticket (upsell/cross-sell/bundles/premium), subir frecuencia (recordatorios inteligentes, membresías, recompra por temporada), subir retención (onboarding post-venta, lealtad simple, comunidad VIP, sorpresa y deleite), referidos (doble incentivo: gana quien refiere Y el referido; pedir tras experiencia 10/10).
+KPI: ventas por canal, CPA, ROAS, conversión DM→venta 10-30%, % ventas a lista VIP, NPS. MES 7: ciclo — E1 comprimida a 1 mes (20% experimentación nueva), E2 permanente, E3 = 1 campaña por trimestre.`,
+
+formatos: `BIBLIOTECA DE FORMATOS GANADORES (formato → mecanismo psicológico): POV → identificación/neuronas espejo · "Errores que estás cometiendo" → aversión a la pérdida (2× más motivante que ganar) · "5 cosas que no sabías" → brecha de curiosidad + fluidez del conteo · Antes vs Después → contraste + evidencia visual, guardable y enviable · "El proceso de…" → fascinación ASMR + transparencia, eleva valor percibido · "Lo que nadie te dice" → conocimiento insider, dispara el envío · Mitos y verdades → superioridad informativa + debate · Reacción → emoción vicaria · Storytelling (contexto-conflicto-resolución) → transporte narrativo, oxitocina, memoria · Mini documental 60-90s → profundidad = autoridad + tiempo total retenido · Caso real → "alguien como yo lo logró" · BTS → efecto pratfall, humaniza · "Cómo lo hacemos" → reciprocidad; mostrar el cómo posiciona, no canibaliza · "Un día trabajando en…" → relación parasocial, mera exposición · Comparativas → decisión por contraste, guardable · Ranking → efecto Zeigarnik, retención hasta el #1 · FAQ → objeciones en público + SEO interno · Opinión impopular → activación tribal, comentarios largos (discrepar del hábito, jamás de valores) · Tendencia adaptada al nicho → principio MAYA, nunca calcada.
+ELECCIÓN POR OBJETIVO: descubrimiento → POV, tendencias adaptadas, ranking, reacción · autoridad → mitos, cómo lo hacemos, mini documental, FAQ · confianza → storytelling, caso real, BTS, un día en · conversación → opinión impopular, mitos, comparativas · guardados → rankings, comparativas, FAQ, procesos · conversión → antes/después, caso real, comparativas con CTA.`,
+
+evitar: `CONTENIDO QUE SE EVITA (y por qué): publicidad evidente (ceguera publicitaria + reactancia; se detecta "me quieren vender" en <2s) · catálogo puro sin valor (excepción: producto sensorial como espectáculo) · videos largos sin gancho (la decisión ocurre en ~1.7-3s) · logos al inicio (firma del anuncio) · intros "hola, bienvenidos" (valor cero; cold open) · tendencias sin adaptar · publicaciones sin historia/arco · contenido "por cumplir" (señales negativas activas que degradan toda la cuenta) · exceso de texto en pantalla (una idea por lámina) · publicaciones únicamente corporativas sin rostro (sin cara no hay relación parasocial; crítico incluso en bancos). REGLA DE ORO: cada pieza responde "¿qué gana la persona que ve esto?"; si la respuesta es "conoce nuestra promoción", pertenece al 30% de oferta del mes 6 o se rediseña.`,
+
+operativo: `CALENDARIO MENSUAL MAESTRO: Etapa 1 (mix 40 educación /30 identidad /20 humano /10 producto): S1 2 reels educación + 1 reel identidad + 1 carrusel utilidad · S2 2 reels pilares en prueba + 1 carrusel + 1 humano/BTS · S3 2 reels + 1 colaboración/tendencia + 1 carrusel · S4 revisión ICG + 3 réplicas de lo mejor + 1 live (desde mes 2). Etapa 2 (45/30/15/10): 2 ganadores optimizados + testimonio/caso + BTS/serie/influencer por semana. Etapa 3 (40/30/30): S1 teasers+VIP · S2 video oferta+live+storyselling · S3 testimonio diario+FAQ+comparativas · S4 cierre con urgencia+live final.
+CALENDARIO SEMANAL TIPO: Lun reel educativo (pilar 1) + historias contexto/encuesta · Mar historias narrativas + caja de preguntas (día de producción en lote) · Mié reel identidad/tendencia adaptada (revisar métricas 72h del lunes) · Jue carrusel utilidad o caso (serie con nombre) + BTS/testimonio (responder 100% comentarios <2h) · Vie reel storytelling o prueba social + ritual de métricas: ICG + planilla · Sáb comunidad/UGC · Dom descanso o repost estratégico.
+TIPOS POR OBJETIVO: descubrimiento → reel corto 7-15s/POV/tendencia/ranking, CTA "sígueme para la parte 2", mide % no-seguidores · autoridad → mitos/cómo lo hacemos/FAQ/mini documental, "guárdalo", mide guardados+visitas perfil · confianza → storytelling/caso/BTS, "¿te ha pasado?", mide comentarios+DMs · conversación → opinión impopular/comparativas, pregunta binaria · guardados → checklist/guía/receta, "guárdalo para cuando…" · conversión → antes-después/testimonio/oferta con bonos, palabra clave por DM, mide DMs/CPL/ventas.
+BENCHMARKS: tasa de gancho 3s 60-70% (excelente >75%) · retención reel <30s 40-45% (>55%) · finalización TikTok 40-50% (>=70% viral) · compartidos/alcance 0.5-1% (>1.5%) · guardados/alcance 0.5-1% (>1.5%) · interacción/alcance 5-8% (>10%) · % no-seguidores en reels >40% (>60%) · visitas perfil/alcance 2-3% (>5%) · respuesta DM <5 min hábil · CTR anuncio 1-2% (>3%) · CPM LATAM 2-6 USD · conversión DM→venta 10-20% (>30%) · ROAS mes 6 >=3 retail, >=5 ticket alto.
+DIAGNÓSTICO POR SÍNTOMA: alto alcance+baja retención → el gancho promete y el cuerpo no cumple (densidad, pattern interrupts) · baja distribución+alta retención → gancho débil, probar 3 ganchos sobre el mismo cuerpo · likes sin compartidos → falta identidad/utilidad enviable · guardados sin comentarios → añadir pregunta u opinión (no grave) · engagement sin ventas → falta puente: palabra clave + DM automatizado + oferta clara · seguidores suben y alcance baja → aumentar formatos de descubrimiento · CTR alto+conversión baja → el anuncio vende, la oferta/landing no (precio ancla, fricción, speed-to-lead) · CTR bajo → rotar creativo del Banco · CPM alto sostenido → público saturado, ampliar/rotar · alcance cae >40% dos semanas → auditoría completa (originalidad, engagement bait, consistencia temática, cambios de algoritmo).
+REGLAS DE INTERVENCIÓN: nunca cambiar antes de 3 semanas de datos · 6 semanas sin ICG >1.2 → reabrir pilares y propuesta de valor · mes 6 con conversión <50% del objetivo con tráfico sano → rediseñar oferta y auditar speed-to-lead · se cambia UNA capa a la vez en orden: oferta → público → mensaje/gancho → formato → plataforma.
+PAUTA POR NIVEL (distribución semestral 5/10/15/20/20/30): Nivel A local <300 USD/mes → concentrar en meses 4-6; 70% impulso de ganadores + 30% remarketing simple; nada de prospección fría cara. Nivel B 300-1,500 USD → estructura completa por etapa; E3: 60% prospección con creativos ganadores / 30% remarketing / 10% prueba social. Nivel C 1,500+ USD → Advantage+/CBO con creativos del Banco desde mes 3; escalado vertical +20% cada 3 días si el CPA aguanta; horizontal con lookalikes; refresh creativo cada 2-3 semanas. REGLA: la pauta solo corre sobre creativos con ICG >= 1.2 o derivados. Si un anuncio muere, se vuelve al Banco, no al brainstorming.
+ESCALADO DE GANADORES (6 niveles): replicar (Regla de 3) → serializar (serie con nombre y día fijo) → multiplicar formato (reel → carrusel espejo → historias → live → email: 1 idea = 5 activos) → amplificar con pauta → cross-platform nativo (re-grabar limpio) → refrescar cada 6-8 semanas.
+COMUNIDAD: responder 100% comentarios <2h · pregunta respondible en 5 palabras al final · rituales/series fijas · contenido protagonizado por la comunidad · canal propio (difusión IG/WhatsApp o grupo FB, alcance 20-40%) · nombre de tribu.
+ESCALERA DE CONFIANZA (7 peldaños, en orden): consistencia → rostro humano → educación generosa → prueba social ligera → prueba social profunda → validación externa → garantías y transparencia radical. E1 construye 1-3, E2 construye 4-6, E3 activa 7. Saltarse peldaños = vender en frío.
+AUTOMATIZACIÓN: flujo estándar Reel/Anuncio → comentario con palabra clave → DM automático (ManyChat) → 1 pregunta calificadora → valor + link → WhatsApp/agenda/landing → humano → VENTA → etiqueta CRM → post-venta → fidelización → referido. Speed-to-lead <5 min hábil (la automatización da el primer toque; el humano cierra). DM: saludo con nombre → entrega → UNA pregunta calificadora → ruta; nunca más de 2 mensajes sin respuesta. WhatsApp Business: catálogo, bienvenida/ausencia, etiquetas (nuevo/cotizado/cliente/recurrente), listas de difusión segmentadas (nunca grupos) máx 3-4 envíos/mes, estados como canal orgánico. Guion de cierre 5 mensajes: contexto+gracias → pregunta de necesidad → recomendación con precio ancla → objeción con prueba social → cierre asumido con 2 opciones. Seguimiento 24-72-7: 24h toque de valor, 72h pregunta de estado, día 7 último toque con puerta abierta; luego nutrición mensual. CRM disciplinado (una hoja de cálculo al día > CRM caro sin usar). Email: imprescindible en ticket alto/B2B/e-commerce; secuencias: bienvenida 3 correos, nutrición quincenal, lanzamiento 5-7 espejo del mes 6, carrito abandonado 3 toques.`,
+
+matriz: `MATRIZ DE ADAPTACIÓN (plataforma primaria/secundaria · pilares con más probabilidad · CTA · ciclo de venta · particularidades): Restaurante/café/food truck → IG+TikTok/FB local · producto sensorial, proceso, equipo, experiencia · "muéstranos esta historia"/reserva WhatsApp · inmediato · el producto ES el contenido; geo-etiquetas, SEO local. Banco/financiera/seguros → FB+IG/TikTok educativo · educación financiera, mitos, casos, humano · "comenta GUÍA"→lead magnet · largo · CUMPLIMIENTO: todo por legal, sin promesas de rendimiento, disclaimers. Barbería/gym/estética → IG+TikTok · antes/después, proceso, identidad, comunidad · "envía AGENDA" · corto · la transformación visual es la mina de oro; membresías=LTV. Clínica/consultorio/abogado → FB+IG/TikTok educativo · FAQ, mitos, casos anonimizados, humano · "agenda tu valoración" · medio-largo · ÉTICA: sin promesas de resultados, consentimiento, privacidad. Hotel/turismo → IG+TikTok/FB · experiencia, BTS, un día en, comparativas · link reserva+DM · medio, estacional · UGC de huéspedes = activo principal. Inmobiliaria/constructora → FB+IG/TikTok tours · recorridos, comparativas, obra, casos · "comenta INFO"→asesor · muy largo · nurturing WhatsApp/email = 80% del trabajo; lead forms en pauta. Boutique/ropa → IG+TikTok · styling "5 formas de…", tendencias, identidad, BTS · DM/catálogo/tienda · corto · drops y colecciones = escasez natural. B2B/agencia/consultoría → IG+LinkedIn/TikTok · autoridad, casos con números, opinión, cómo lo hacemos · palabra clave→diagnóstico · largo · menos volumen más profundidad; mini documental de caso = formato rey. Emprendedor/ambulante → TikTok primero/IG · storytelling personal, proceso, un día en · "ven a buscarme"/DM · inmediato · la historia del dueño ES la marca. E-commerce → TikTok+IG/FB · demostración, UGC, comparativas, tendencias · TikTok Shop/link/carrito · corto-medio · pauta entra antes (mes 2-3); UGC creators a volumen.`
+
+  },
+  /** Construye el contexto de conocimiento para una llamada de IA. */
+  ctx(keys){
+    let out = keys.map(k => KB.sec[k] || '').filter(Boolean).join('\n\n');
+    const mods = (Store.data.modules || []).filter(m => m.activo !== false);
+    if (mods.length){
+      out += '\n\nMÓDULOS DE ACTUALIZACIÓN VIGENTES (amplían o corrigen lo anterior; en caso de conflicto, manda el módulo más reciente):\n' +
+        mods.map(m => `[${m.nombre} · ${m.fecha}] ${m.reglas}`).join('\n');
+    }
+    if (Store.data.kbNotes) out += '\n\nNOTAS INTERNAS DE LA AGENCIA:\n' + Store.data.kbNotes;
+    return out;
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO STORE — js/store.js
+   Estado central + persistencia (window.storage con respaldo en
+   memoria y exportación/importación JSON).
+   ════════════════════════════════════════════════════════════════ */
+const Store = {
+  data: { clients: [], activeId: null, modules: [], kbNotes: '' },
+  persistente: false,
+  uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); },
+
+  nuevoCliente(){
+    return { id: this.uid(), creado: new Date().toISOString(), mes: 1,
+      intake: {}, diagnostico: null, estrategia: { e1:null, e2:null, e3:null },
+      contenidos: [], calendario: [], banco: [], campanas: [], autos: [],
+      metricas: [], historial: [] };
+  },
+  client(){ return this.data.clients.find(c => c.id === this.data.activeId) || null; },
+  etapaDe(mes){ return mes <= 3 ? 1 : (mes <= 5 ? 2 : 3); },
+
+  async load(){
+    try{
+      const r = await window.storage.get('m321:data');
+      if (r && r.value){ this.data = Object.assign(this.data, JSON.parse(r.value)); }
+      this.persistente = true;
+    }catch(e){ this.persistente = (typeof window.storage !== 'undefined'); }
+    this.normaliza();
+  },
+  /** Garantiza la forma de los datos aunque vengan de un respaldo viejo o incompleto. */
+  normaliza(){
+    const d = this.data;
+    d.clients = d.clients || []; d.modules = d.modules || []; d.kbNotes = d.kbNotes || '';
+    d.clients.forEach(c => {
+      c.intake = c.intake || {}; c.mes = c.mes || 1;
+      c.estrategia = c.estrategia || { e1:null, e2:null, e3:null };
+      ['contenidos','calendario','banco','campanas','autos','metricas','historial'].forEach(k => { if (!Array.isArray(c[k])) c[k] = []; });
+    });
+    if (d.activeId && !d.clients.some(c => c.id === d.activeId)) d.activeId = d.clients.length ? d.clients[0].id : null;
+  },
+  _t: null,
+  save(){
+    UI.saveDot('Guardando…');
+    clearTimeout(this._t);
+    this._t = setTimeout(async () => {
+      try{
+        await window.storage.set('m321:data', JSON.stringify(this.data));
+        UI.saveDot('Guardado ✓');
+      }catch(e){
+        UI.saveDot('Solo en memoria — exporta tus datos');
+      }
+    }, 500);
+  },
+  exportar(){
+    const blob = new Blob([JSON.stringify(this.data, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'metodo321-datos-' + new Date().toISOString().slice(0,10) + '.json';
+    a.click(); URL.revokeObjectURL(a.href);
+  },
+  importar(file){
+    const rd = new FileReader();
+    rd.onload = () => {
+      try{ Store.data = JSON.parse(rd.result); Store.normaliza(); Store.save(); App.refresh(); UI.toast('Datos importados'); }
+      catch(e){ UI.toast('El archivo no es un respaldo válido'); }
+    };
+    rd.readAsText(file);
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO AI — js/ai.js
+   Motor de inteligencia: cada pantalla llama a la API de Anthropic
+   con las secciones relevantes del Método 3·2·1 como sistema.
+   ════════════════════════════════════════════════════════════════ */
+const AI = {
+  system(secciones, rol, textoPlano){
+    return 'Eres el Director de Marketing Senior de una agencia que opera ÚNICA y EXCLUSIVAMENTE con el Método 3·2·1. ' +
+      (rol || '') +
+      ' Reglas duras: (1) Cada recomendación se fundamenta en la metodología de abajo; si la metodología prohíbe algo, no lo recomiendas jamás. ' +
+      '(2) Eres específico para ESTE negocio: usas su industria, ciudad, productos, precios y capacidad real; nada genérico. ' +
+      '(3) Escribes en español neutro, directo y accionable. ' +
+      (textoPlano
+        ? '(4) Respondes en texto plano bien estructurado, sin markdown ni JSON.'
+        : '(4) Respondes ÚNICAMENTE con JSON válido, sin markdown, sin backticks, sin texto antes o después. Sé conciso para no truncar el JSON.') +
+      '\n\n=== MÉTODO 3·2·1 (v' + KB.version + ') ===\n' + KB.ctx(secciones);
+  },
+  clienteCtx(c){
+    const i = c.intake, d = c.diagnostico;
+    const base = { negocio: i, mesDelPrograma: c.mes, etapaActual: 'Etapa ' + Store.etapaDe(c.mes) };
+    if (d && d.matriz) base.configuracionMatriz = d.matriz;
+    if (d && d.persona) base.buyerPersona = d.persona;
+    if (c.banco.length) base.estructurasGanadoras = c.banco.filter(b => b.icg >= 1.2).map(b => ({ titulo:b.titulo, formato:b.formato, pilar:b.pilar, estructura:b.estructura, icg:b.icg })).slice(0,8);
+    return 'DATOS DEL CLIENTE:\n' + JSON.stringify(base);
+  },
+  async raw(system, user){
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1000,
+        system: system, messages: [{ role:'user', content: user }] })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || 'Error de la API');
+    return (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
+  },
+  parse(t){
+    t = t.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const a = t.indexOf('{'), b = t.indexOf('[');
+    let s = -1, e = -1;
+    if (a >= 0 && (b < 0 || a < b)){ s = a; e = t.lastIndexOf('}'); }
+    else if (b >= 0){ s = b; e = t.lastIndexOf(']'); }
+    if (s < 0 || e < 0) throw new Error('sin JSON');
+    return JSON.parse(t.slice(s, e + 1));
+  },
+  async json(system, user){
+    let txt = await this.raw(system, user);
+    try{ return this.parse(txt); }
+    catch(e){
+      txt = await this.raw(system, user + '\n\nIMPORTANTE: tu respuesta anterior no fue JSON válido o quedó incompleta. Responde SOLO el JSON, más breve.');
+      return this.parse(txt);
+    }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO ICG — js/icg.js
+   Índice de Contenido Ganador, implementado exactamente como lo
+   define la sección 7 del método: ratios contra la MEDIANA móvil
+   de las últimas 15 piezas, pesos 0.15/0.30/0.25/0.15/0.15 y
+   "modo venta" (Etapa 3) con componente V de conversión (0.30).
+   ════════════════════════════════════════════════════════════════ */
+const ICG = {
+  mediana(arr){
+    const v = arr.filter(x => isFinite(x) && x > 0).sort((a,b) => a-b);
+    if (!v.length) return 0;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : (v[m-1] + v[m]) / 2;
+  },
+  ratios(m){
+    const al = +m.alcance || 0;
+    return {
+      A: al,
+      R: +m.retencion || 0,
+      C: al ? (+m.compartidos || 0) / al : 0,
+      G: al ? (+m.guardados || 0) / al : 0,
+      I: al ? ((+m.visitas||0) + (+m.clics||0) + (+m.dms||0)) / al : 0,
+      V: al ? (+m.conversiones || 0) / al : 0
+    };
+  },
+  calc(banco, pieza, modoVenta){
+    const prev = banco.filter(p => p.id !== pieza.id).slice(-15).map(p => this.ratios(p.metricas));
+    const r = this.ratios(pieza.metricas);
+    const med = k => this.mediana(prev.map(p => p[k]));
+    const ratio = k => { const m = med(k); return m > 0 ? r[k] / m : 1; };
+    let icg;
+    if (modoVenta){
+      // V pesa 0.30; los pesos base (suman 1) se reescalan ×0.70
+      icg = .105*ratio('A') + .21*ratio('R') + .175*ratio('C') + .105*ratio('G') + .105*ratio('I') + .30*ratio('V');
+    } else {
+      icg = .15*ratio('A') + .30*ratio('R') + .25*ratio('C') + .15*ratio('G') + .15*ratio('I');
+    }
+    return Math.round(icg * 100) / 100;
+  },
+  clase(icg){
+    if (icg >= 1.5) return { t:'🏆 Ganador absoluto', c:'gold', accion:'Entra al Banco · replicar ×3 · candidato a pauta inmediata' };
+    if (icg >= 1.2) return { t:'Ganador', c:'green', accion:'Replicar ×3 para la Regla de 3' };
+    if (icg >= 0.8) return { t:'Neutro', c:'amber', accion:'1 iteración cambiando SOLO el gancho; si no mejora, archivo' };
+    return { t:'Débil', c:'red', accion:'Descartar la estructura tras 2 intentos · documentar aprendizaje' };
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO UI — js/ui.js  · Helpers de interfaz
+   ════════════════════════════════════════════════════════════════ */
+const UI = {
+  esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); },
+  toast(msg){
+    const d = document.createElement('div');
+    d.className = 'toast'; d.textContent = msg;
+    document.getElementById('toasts').appendChild(d);
+    setTimeout(() => d.remove(), 3200);
+  },
+  saveDot(t){ document.getElementById('saveDot').textContent = t || ''; },
+  modal(title, bodyHTML, onMount){
+    const host = document.getElementById('modalHost');
+    host.innerHTML = '<div class="modal-bg" id="mBg"><div class="modal"><div class="card-h"><h3>' + this.esc(title) +
+      '</h3><button class="x" id="mX">✕</button></div><div class="card-b" id="mBody">' + bodyHTML + '</div></div></div>';
+    document.getElementById('mX').onclick = UI.closeModal;
+    document.getElementById('mBg').onclick = e => { if (e.target.id === 'mBg') UI.closeModal(); };
+    if (onMount) onMount();
+  },
+  closeModal(){ document.getElementById('modalHost').innerHTML = ''; },
+  thinking(label){
+    return '<div class="thinking"><div class="spin"></div><span>' + this.esc(label) + '</span></div>';
+  },
+  meter(label, val){
+    const pct = Math.max(0, Math.min(10, +val || 0)) * 10;
+    return '<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">' + this.esc(label) +
+      '</span></div><div class="bar-meter"><div class="track"><i style="width:' + pct + '%"></i></div><b>' + (+val || 0) + '/10</b></div></div>';
+  },
+  chips(arr, cls){
+    return '<div class="tag-list">' + (arr || []).map(x => '<span class="chip ' + (cls||'line') + '">' + this.esc(x) + '</span>').join('') + '</div>';
+  },
+  ul(arr){ return '<ul style="margin-left:16px">' + (arr||[]).map(x => '<li style="margin-bottom:4px">' + this.esc(x) + '</li>').join('') + '</ul>'; },
+  fmtMoney(n){ return isFinite(+n) ? ('$' + (+n).toLocaleString('en-US', {maximumFractionDigits:0}) + ' USD') : '—'; },
+  fecha(d){ return new Date(d + 'T12:00:00').toLocaleDateString('es-MX', { day:'numeric', month:'short' }); },
+  /** Gráfica de línea SVG minimalista (sin librerías). */
+  svgLine(values, labels, w, h, color){
+    w = w || 520; h = h || 150; color = color || 'var(--blue)';
+    const vals = values.map(v => +v || 0);
+    if (vals.length < 2) return '<div class="empty" style="padding:26px">Registra al menos 2 semanas para ver la tendencia.</div>';
+    const max = Math.max.apply(null, vals) * 1.12 || 1;
+    const px = i => 34 + i * ((w - 46) / (vals.length - 1));
+    const py = v => (h - 24) - (v / max) * (h - 40);
+    const pts = vals.map((v,i) => px(i) + ',' + py(v)).join(' ');
+    let g = '<svg class="chart" viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:auto">';
+    for (let k = 0; k <= 3; k++){
+      const y = 16 + k * ((h - 40) / 3);
+      g += '<line x1="34" x2="' + (w-10) + '" y1="' + y + '" y2="' + y + '" stroke="#EDEFF3"/>';
+      g += '<text x="30" y="' + (y+3) + '" text-anchor="end">' + Math.round(max * (1 - k/3)).toLocaleString() + '</text>';
+    }
+    g += '<polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round"/>';
+    vals.forEach((v,i) => {
+      g += '<circle cx="' + px(i) + '" cy="' + py(v) + '" r="3" fill="' + color + '"/>';
+      g += '<text x="' + px(i) + '" y="' + (h-6) + '" text-anchor="middle">' + UI.esc(labels[i] || '') + '</text>';
+    });
+    return g + '</svg>';
+  }
+};
+
+/** Campo de formulario (helper de las pantallas). */
+function F(id, label, type, opts){
+  opts = opts || {};
+  const c = Store.client(); const v = c ? (c.intake[id] != null ? c.intake[id] : '') : '';
+  let inner;
+  if (type === 'ta') inner = '<textarea data-f="' + id + '" placeholder="' + UI.esc(opts.ph||'') + '">' + UI.esc(v) + '</textarea>';
+  else if (type === 'sel') inner = '<select data-f="' + id + '">' + opts.opciones.map(o => '<option' + (v===o?' selected':'') + '>' + UI.esc(o) + '</option>').join('') + '</select>';
+  else inner = '<input data-f="' + id + '" type="' + (type||'text') + '" value="' + UI.esc(v) + '" placeholder="' + UI.esc(opts.ph||'') + '">';
+  return '<div class="field"><label>' + label + (opts.hint ? '<small>' + opts.hint + '</small>' : '') + '</label>' + inner + '</div>';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S1 — js/screens/clientes.js · PANTALLA 1: Nuevo Cliente
+   ════════════════════════════════════════════════════════════════ */
+const S_Clientes = {
+  title: 'Clientes',
+  render(el){
+    const c = Store.client();
+    let html = '<div class="h-page"><div><h2>' + (c ? 'Ficha del cliente' : 'Nuevo cliente') + '</h2>' +
+      '<p>Todo el sistema se alimenta de esta ficha. Cuanto más completa, más precisa la estrategia. La IA hará preguntas inteligentes sobre lo que falte.</p></div>' +
+      '<div style="display:flex;gap:8px"><button class="btn" id="bNuevo">+ Nuevo cliente</button>' +
+      (c ? '<button class="btn danger" id="bBorrar">Eliminar</button>' : '') + '</div></div>';
+
+    if (!c){
+      html += '<div class="card"><div class="empty"><div class="art">3·2·1</div><h4>Empieza con tu primer cliente</h4>' +
+        '<p>Crea la ficha del negocio y el sistema generará diagnóstico, estrategia de 6 meses, contenido, calendario, publicidad y automatizaciones con el Método 3·2·1.</p>' +
+        '<button class="btn pri" id="bNuevo2">Crear cliente</button></div></div>';
+      el.innerHTML = html;
+      const go = () => { const n = Store.nuevoCliente(); Store.data.clients.push(n); Store.data.activeId = n.id; Store.save(); App.refresh(); };
+      document.getElementById('bNuevo').onclick = go;
+      document.getElementById('bNuevo2').onclick = go;
+      return;
+    }
+
+    html += '<div class="card"><div class="card-b">' +
+      '<div class="fs-title">Identidad</div><div class="fgrid">' +
+      F('nombre','Nombre de contacto') + F('empresa','Empresa / marca') + F('industria','Industria', 'text', {ph:'restaurante, clínica dental, boutique…'}) +
+      F('tipo','Tipo de negocio','sel',{opciones:['B2C','B2B','B2B y B2C']}) +
+      F('alcanceGeo','Alcance','sel',{opciones:['Local','Regional','Nacional','Internacional']}) +
+      F('pais','País') + F('ciudad','Ciudad') +
+      F('web','Página web','text',{ph:'https://…'}) + F('redes','Redes sociales actuales','text',{ph:'@usuario en IG, TikTok, FB…'}) +
+      '</div>' +
+      '<div class="fs-title">Oferta y economía</div><div class="fgrid">' +
+      F('productos','Productos','ta',{ph:'qué vende, líneas principales'}) + F('servicios','Servicios','ta') +
+      F('precioProm','Precio promedio (USD)','number') + F('ticketProm','Ticket promedio (USD)','number') + F('margen','Margen (%)','number') +
+      F('capProduccion','Capacidad de producción','text',{ph:'p. ej. 40 pedidos/día'}) + F('capAtencion','Capacidad de atención','text',{ph:'p. ej. 2 personas responden DMs'}) +
+      '</div>' +
+      '<div class="fs-title">Marketing</div><div class="fgrid">' +
+      F('objetivos','Objetivos del semestre','ta',{ph:'ventas, reservas, leads, posicionamiento…'}) +
+      F('presupuesto','Presupuesto publicitario mensual (USD)','number') +
+      F('tiempo','Tiempo disponible para contenido','text',{ph:'p. ej. 6 h/semana'}) +
+      F('equipo','Equipo','text',{ph:'quién graba, edita, responde'}) +
+      F('plataformas','Plataformas que ya usa','text',{ph:'IG, TikTok, FB…'}) +
+      F('competencia','Competencia directa','ta',{ph:'nombres o cuentas'}) +
+      '</div>' +
+      '<div class="fs-title">Análisis interno</div><div class="fgrid c2">' +
+      F('fortalezas','Fortalezas','ta') + F('debilidades','Debilidades','ta') +
+      '</div>' +
+      '<div style="display:flex;gap:10px;align-items:center;margin-top:6px"><button class="btn pri" id="bGuardar">Guardar ficha</button>' +
+      '<button class="btn" id="bDx">Continuar al diagnóstico →</button></div>' +
+      '</div></div>';
+    el.innerHTML = html;
+
+    el.querySelectorAll('[data-f]').forEach(inp => {
+      inp.addEventListener('input', () => { c.intake[inp.dataset.f] = inp.value; });
+      inp.addEventListener('change', () => { c.intake[inp.dataset.f] = inp.value; Store.save(); App.paintChrome(); });
+    });
+    el.querySelectorAll('select[data-f]').forEach(s => { if (c.intake[s.dataset.f] == null) c.intake[s.dataset.f] = s.value; });
+    document.getElementById('bGuardar').onclick = () => { Store.save(); UI.toast('Ficha guardada'); App.paintChrome(); };
+    document.getElementById('bDx').onclick = () => App.go('dx');
+    document.getElementById('bNuevo').onclick = () => { const n = Store.nuevoCliente(); Store.data.clients.push(n); Store.data.activeId = n.id; Store.save(); App.refresh(); };
+    const del = document.getElementById('bBorrar');
+    if (del) del.onclick = () => {
+      if (!confirm('¿Eliminar este cliente y todos sus datos?')) return;
+      Store.data.clients = Store.data.clients.filter(x => x.id !== c.id);
+      Store.data.activeId = Store.data.clients.length ? Store.data.clients[0].id : null;
+      Store.save(); App.refresh();
+    };
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S2 — js/screens/diagnostico.js · PANTALLA 2: Diagnóstico
+   La IA analiza la ficha con el método en 3 pasos encadenados:
+   1) FODA + dolores/deseos/objeciones + preguntas inteligentes
+   2) Buyer persona + mapa de empatía
+   3) Niveles, probabilidad de éxito y Matriz de Adaptación
+   ════════════════════════════════════════════════════════════════ */
+const S_Dx = {
+  title: 'Diagnóstico',
+  faltantes(c){
+    const req = { empresa:'empresa', industria:'industria', objetivos:'objetivos', presupuesto:'presupuesto mensual', precioProm:'precio promedio', ciudad:'ciudad', tipo:'tipo de negocio' };
+    return Object.keys(req).filter(k => !c.intake[k]).map(k => req[k]);
+  },
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    const d = c.diagnostico;
+    let html = '<div class="h-page"><div><h2>Diagnóstico</h2><p>Análisis del negocio con las lentes del método: FODA, buyer persona, mapa de empatía, niveles y configuración de la Matriz de Adaptación.</p></div>' +
+      '<button class="btn pri" id="bGen">' + (d ? 'Regenerar diagnóstico' : 'Generar diagnóstico') + '</button></div>';
+
+    const falta = this.faltantes(c);
+    if (falta.length) html += '<div class="warn"><b>Ficha incompleta:</b> falta ' + falta.join(', ') + '. Puedes generar igual — la IA marcará sus supuestos y hará preguntas inteligentes.</div>';
+    html += '<div id="dxProg"></div>';
+
+    if (!d){
+      html += '<div class="card"><div class="empty"><div class="art">Dx</div><h4>Aún no hay diagnóstico</h4><p>La IA leerá la ficha completa y la analizará exclusivamente con el Método 3·2·1.</p></div></div>';
+    } else {
+      if (d.preguntas && d.preguntas.length){
+        html += '<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Preguntas inteligentes</h3><span class="hint">responderlas afina la estrategia</span></div><div class="card-b">' + UI.ul(d.preguntas) + '</div></div>';
+      }
+      html += '<div class="grid2" style="margin-bottom:16px"><div class="card"><div class="card-h"><h3>Probabilidad de éxito</h3><span class="hint">a 6 meses, ejecutando el método</span></div><div class="card-b"><div class="gauge">' +
+        '<span class="num" style="color:var(--blue)">' + (d.probabilidad||0) + '%</span><p style="font-size:12.5px;color:var(--muted)">' + UI.esc(d.probabilidadNota||'') + '</p></div></div></div>' +
+        '<div class="card"><div class="card-h"><h3>Niveles actuales</h3><span class="hint">0–10</span></div><div class="card-b">' +
+        UI.meter('Competencia del mercado', d.niveles && d.niveles.competencia) +
+        UI.meter('Autoridad', d.niveles && d.niveles.autoridad) +
+        UI.meter('Contenido', d.niveles && d.niveles.contenido) +
+        UI.meter('Marca', d.niveles && d.niveles.marca) +
+        UI.meter('Ventas', d.niveles && d.niveles.ventas) +
+        UI.meter('Confianza', d.niveles && d.niveles.confianza) +
+        '</div></div></div>';
+
+      if (d.matriz){
+        html += '<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Matriz de Adaptación</h3><span class="hint">variables que configuran todo el semestre</span></div><div class="card-b"><div class="meta-grid">' +
+          '<div class="m"><b>Plataforma primaria</b><span>' + UI.esc(d.matriz.plataformaPrimaria) + '</span></div>' +
+          '<div class="m"><b>Secundaria</b><span>' + UI.esc(d.matriz.plataformaSecundaria) + '</span></div>' +
+          '<div class="m"><b>CTA principal</b><span>' + UI.esc(d.matriz.ctaPrincipal) + '</span></div>' +
+          '<div class="m"><b>Ciclo de venta</b><span>' + UI.esc(d.matriz.cicloVenta) + '</span></div></div>' +
+          '<div style="margin-top:12px"><b style="font-size:12px">Los 4 pilares de contenido</b><div style="margin-top:6px">' + UI.chips(d.matriz.pilares, 'blue') + '</div></div>' +
+          (d.matriz.particularidades ? '<p style="font-size:12.5px;color:var(--muted);margin-top:10px">' + UI.esc(d.matriz.particularidades) + '</p>' : '') +
+          '</div></div>';
+      }
+
+      if (d.foda){
+        html += '<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Análisis FODA</h3></div><div class="card-b"><div class="foda">' +
+          '<div class="q"><h5><span class="chip green">F</span>Fortalezas</h5>' + UI.ul(d.foda.fortalezas) + '</div>' +
+          '<div class="q"><h5><span class="chip blue">O</span>Oportunidades</h5>' + UI.ul(d.foda.oportunidades) + '</div>' +
+          '<div class="q"><h5><span class="chip amber">D</span>Debilidades</h5>' + UI.ul(d.foda.debilidades) + '</div>' +
+          '<div class="q"><h5><span class="chip red">A</span>Amenazas</h5>' + UI.ul(d.foda.amenazas) + '</div></div></div></div>';
+      }
+
+      html += '<div class="grid3" style="margin-bottom:16px">' +
+        '<div class="card"><div class="card-h"><h3>Dolores</h3></div><div class="card-b">' + UI.ul(d.dolores) + '</div></div>' +
+        '<div class="card"><div class="card-h"><h3>Deseos</h3></div><div class="card-b">' + UI.ul(d.deseos) + '</div></div>' +
+        '<div class="card"><div class="card-h"><h3>Objeciones</h3></div><div class="card-b">' + UI.ul(d.objeciones) + '</div></div></div>';
+
+      if (d.persona){
+        html += '<div class="grid2"><div class="card"><div class="card-h"><h3>Buyer persona</h3></div><div class="card-b">' +
+          '<b style="font-size:15px">' + UI.esc(d.persona.nombre||'') + '</b> <span class="chip gray">' + UI.esc(d.persona.edad||'') + '</span>' +
+          '<p style="font-size:13px;margin:8px 0">' + UI.esc(d.persona.contexto||'') + '</p><div class="meta-grid">' +
+          '<div class="m"><b>Ocupación</b><span>' + UI.esc(d.persona.ocupacion||'') + '</span></div>' +
+          '<div class="m"><b>Dolor principal</b><span>' + UI.esc(d.persona.dolorPrincipal||'') + '</span></div>' +
+          '<div class="m"><b>Motivación</b><span>' + UI.esc(d.persona.motivacion||'') + '</span></div>' +
+          '<div class="m"><b>Dónde vive digitalmente</b><span>' + UI.esc(d.persona.canales||'') + '</span></div></div></div></div>';
+        const e = d.empatia || {};
+        html += '<div class="card"><div class="card-h"><h3>Mapa de empatía</h3></div><div class="card-b"><div class="meta-grid" style="grid-template-columns:1fr 1fr">' +
+          '<div class="m"><b>Piensa y siente</b><span>' + UI.esc(e.piensaSiente||'') + '</span></div>' +
+          '<div class="m"><b>Ve</b><span>' + UI.esc(e.ve||'') + '</span></div>' +
+          '<div class="m"><b>Oye</b><span>' + UI.esc(e.oye||'') + '</span></div>' +
+          '<div class="m"><b>Dice y hace</b><span>' + UI.esc(e.diceHace||'') + '</span></div>' +
+          '<div class="m"><b>Esfuerzos (frustraciones)</b><span>' + UI.esc(e.esfuerzos||'') + '</span></div>' +
+          '<div class="m"><b>Resultados (lo que quiere lograr)</b><span>' + UI.esc(e.resultados||'') + '</span></div>' +
+          '</div></div></div></div>';
+      }
+    }
+    el.innerHTML = html;
+    document.getElementById('bGen').onclick = () => this.generar(c);
+  },
+  async generar(c){
+    const prog = document.getElementById('dxProg');
+    const btn = document.getElementById('bGen'); btn.disabled = true;
+    const falta = this.faltantes(c);
+    try{
+      prog.innerHTML = UI.thinking('Paso 1/3 · FODA, dolores, deseos y objeciones…');
+      const p1 = await AI.json(
+        AI.system(['principios','matriz','evitar'], 'Estás haciendo el diagnóstico de onboarding (Semana 0).'),
+        AI.clienteCtx(c) + (falta.length ? '\nCampos sin responder: ' + falta.join(', ') + '.' : '') +
+        '\nDevuelve JSON: {"foda":{"fortalezas":[3-4 str],"oportunidades":[3-4],"debilidades":[3-4],"amenazas":[3]},"dolores":[4 str cortos del cliente final],"deseos":[4],"objeciones":[4],"preguntas":[2-4 preguntas inteligentes SOLO sobre información faltante o ambigua de la ficha; si nada falta, []]}. Frases de máx 14 palabras.');
+      prog.innerHTML = UI.thinking('Paso 2/3 · Buyer persona y mapa de empatía…');
+      const p2 = await AI.json(
+        AI.system(['principios','matriz'], 'Construyes el buyer persona del onboarding.'),
+        AI.clienteCtx(c) + '\nDolores detectados: ' + JSON.stringify(p1.dolores) +
+        '\nDevuelve JSON: {"persona":{"nombre":str,"edad":str,"ocupacion":str,"contexto":str máx 30 palabras,"dolorPrincipal":str,"motivacion":str,"canales":str},"empatia":{"piensaSiente":str,"ve":str,"oye":str,"diceHace":str,"esfuerzos":str,"resultados":str}}. Cada campo de empatía máx 15 palabras.');
+      prog.innerHTML = UI.thinking('Paso 3/3 · Niveles, probabilidad y Matriz de Adaptación…');
+      const p3 = await AI.json(
+        AI.system(['principios','matriz','algoritmos'], 'Cierras el diagnóstico configurando la Matriz de Adaptación del método para este negocio.'),
+        AI.clienteCtx(c) +
+        '\nDevuelve JSON: {"niveles":{"competencia":0-10,"autoridad":0-10,"contenido":0-10,"marca":0-10,"ventas":0-10,"confianza":0-10},"probabilidad":40-95,"probabilidadNota":str máx 22 palabras justificando,"matriz":{"plataformaPrimaria":str,"plataformaSecundaria":str,"pilares":[4 pilares concretos para ESTE negocio],"ctaPrincipal":str,"cicloVenta":str,"particularidades":str máx 25 palabras (regulación, ética, estacionalidad si aplica)}}');
+      c.diagnostico = Object.assign({}, p1, p2, p3);
+      Store.save(); App.refresh(); UI.toast('Diagnóstico generado con el Método 3·2·1');
+    }catch(e){
+      prog.innerHTML = '<div class="warn">No se pudo completar el diagnóstico: ' + UI.esc(e.message) + '. Intenta de nuevo.</div>';
+      btn.disabled = false;
+    }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S3 — js/screens/estrategia.js · PANTALLA 3: Estrategia
+   Plan de 6 meses por etapas. El presupuesto se calcula en código
+   (distribución 5/10/15/20/20/30 es regla fija del método); la IA
+   personaliza objetivos, cronograma y tareas por etapa.
+   ════════════════════════════════════════════════════════════════ */
+const S_Estrategia = {
+  title: 'Estrategia 6 meses',
+  DIST: [5,10,15,20,20,30],
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    const tieneDx = !!c.diagnostico;
+    let html = '<div class="h-page"><div><h2>Estrategia de 6 meses</h2><p>Roadmap completo del semestre: Reconocimiento (3) → Consideración (2) → Conversión (1), con objetivos, KPI, cronograma, tareas y presupuesto.</p></div>' +
+      '<button class="btn pri" id="bGen" ' + (tieneDx ? '' : 'disabled title="Genera primero el diagnóstico"') + '>' + (c.estrategia.e1 ? 'Regenerar estrategia' : 'Generar estrategia') + '</button></div>';
+    if (!tieneDx) html += '<div class="note">El método exige diagnóstico antes de estrategia (Semana 0 → configuración de la Matriz). <b>Genera primero el diagnóstico.</b></div>';
+    html += '<div id="esProg"></div>';
+
+    // Presupuesto semestral — cálculo determinista del método
+    const p = +c.intake.presupuesto || 0;
+    if (p > 0){
+      const total = p * 6;
+      const nivel = p < 300 ? 'A · Local básico' : (p <= 1500 ? 'B · Crecimiento' : 'C · Agresivo');
+      html += '<div class="card" style="margin-bottom:16px"><div class="card-h"><h3>Presupuesto publicitario del semestre</h3><span class="hint">distribución fija del método · nivel ' + nivel + '</span></div>' +
+        '<div class="card-b"><table class="tb"><tr><th>Mes</th>' + [1,2,3,4,5,6].map(m => '<th>M' + m + '</th>').join('') + '<th>Total</th></tr>' +
+        '<tr><td>% del semestre</td>' + this.DIST.map(x => '<td class="num">' + x + '%</td>').join('') + '<td class="num">100%</td></tr>' +
+        '<tr><td>Inversión</td>' + this.DIST.map(x => '<td class="num">' + UI.fmtMoney(total * x / 100) + '</td>').join('') + '<td class="num"><b>' + UI.fmtMoney(total) + '</b></td></tr></table>' +
+        '<p style="font-size:12px;color:var(--muted);margin-top:10px">Regla del método: la pauta nunca rescata contenido débil — amplifica piezas con ICG ≥ 1.2 ya validadas orgánicamente.</p></div></div>';
+    }
+
+    const et = [
+      { k:'e1', n:'3', titulo:'Etapa 1 · Reconocimiento', rango:'Meses 1–3', color:'blue' },
+      { k:'e2', n:'2', titulo:'Etapa 2 · Consideración', rango:'Meses 4–5', color:'green' },
+      { k:'e3', n:'1', titulo:'Etapa 3 · Conversión', rango:'Mes 6', color:'gold' }
+    ];
+    et.forEach(e => {
+      const d = c.estrategia[e.k];
+      html += '<div class="card" style="margin-bottom:16px"><div class="card-h"><span class="chip ' + e.color + '" style="font-family:var(--mono)">' + e.n + '</span><h3>' + e.titulo + '</h3><span class="hint">' + e.rango + '</span></div><div class="card-b">';
+      if (!d){ html += '<p style="color:var(--faint);font-size:13px">Pendiente de generar.</p>'; }
+      else {
+        html += '<p style="font-size:13.5px;margin-bottom:14px"><b>Misión:</b> ' + UI.esc(d.mision||'') + '</p>' +
+          '<div class="grid2"><div><b style="font-size:12.5px">Objetivos</b>' + UI.ul(d.objetivos) + '</div>' +
+          '<div><b style="font-size:12.5px">KPI de la etapa</b>' + UI.ul(d.kpi) + '</div></div>';
+        if (d.cronograma && d.cronograma.length){
+          html += '<div class="fs-title">Cronograma</div><table class="tb"><tr><th style="width:120px">Periodo</th><th>Foco</th><th>Acciones clave</th></tr>' +
+            d.cronograma.map(r => '<tr><td><b>' + UI.esc(r.periodo) + '</b></td><td>' + UI.esc(r.foco) + '</td><td>' + UI.esc((r.acciones||[]).join(' · ')) + '</td></tr>').join('') + '</table>';
+        }
+        if (d.tareas && d.tareas.length){
+          html += '<div class="fs-title">Tareas del equipo</div>' + UI.ul(d.tareas);
+        }
+        if (d.pauta) html += '<p style="font-size:12.5px;color:var(--muted);margin-top:12px"><b>Pauta:</b> ' + UI.esc(d.pauta) + '</p>';
+      }
+      html += '</div></div>';
+    });
+    el.innerHTML = html;
+    const b = document.getElementById('bGen');
+    if (b && !b.disabled) b.onclick = () => this.generar(c);
+  },
+  async generar(c){
+    const prog = document.getElementById('esProg');
+    document.getElementById('bGen').disabled = true;
+    const defs = [
+      { k:'e1', kb:['principios','etapa1','ab','operativo'], label:'Etapa 1 · Reconocimiento (meses 1–3)', extra:'Cronograma con 3 filas: "Mes 1 · Exploración", "Mes 2 · Iteración", "Mes 3 · Validación".' },
+      { k:'e2', kb:['principios','etapa2','operativo'], label:'Etapa 2 · Consideración (meses 4–5)', extra:'Cronograma con 2 filas: "Mes 4" y "Mes 5" (optimización, influencers según presupuesto, UGC y prueba social).' },
+      { k:'e3', kb:['principios','etapa3','operativo'], label:'Etapa 3 · Conversión (mes 6)', extra:'Cronograma con 4 filas: "Semana 1 · Pre-lanzamiento", "Semana 2 · Apertura", "Semana 3 · Prueba social", "Semana 4 · Cierre". Incluye el diseño de oferta recomendado (por defecto bonus stack) adaptado a este negocio.' }
+    ];
+    try{
+      for (const d of defs){
+        prog.innerHTML = UI.thinking('Generando ' + d.label + '…');
+        c.estrategia[d.k] = await AI.json(
+          AI.system(d.kb, 'Diseñas el plan de "' + d.label + '" para este cliente.'),
+          AI.clienteCtx(c) + '\n' + d.extra +
+          '\nDevuelve JSON: {"mision":str máx 25 palabras,"objetivos":[3 str medibles y específicos de este negocio],"kpi":[3-4 str con metas numéricas del método],"cronograma":[{"periodo":str,"foco":str máx 10 palabras,"acciones":[2-3 str cortos]}],"tareas":[3-4 str operativas],"pauta":str máx 25 palabras sobre cómo usar el presupuesto de la etapa}');
+        Store.save();
+      }
+      App.refresh(); UI.toast('Estrategia de 6 meses lista');
+    }catch(e){
+      prog.innerHTML = '<div class="warn">Error al generar: ' + UI.esc(e.message) + '. Vuelve a intentar (lo ya generado quedó guardado).</div>';
+      document.getElementById('bGen').disabled = false;
+    }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S4 — js/screens/contenido.js · PANTALLA 4: Contenido
+   Generador de piezas completas (gancho, guion, CTA, psicología,
+   algoritmo, edición, SEO…). Nunca repite ideas: el historial de
+   títulos viaja en cada prompt.
+   ════════════════════════════════════════════════════════════════ */
+const S_Contenido = {
+  title: 'Contenido',
+  FORMATOS: ['Automático (decide el método)','Reel','Carrusel','Historias (secuencia)','Post','Live','Colaboración','UGC','Serie','Storytelling','Ranking','POV','Errores comunes','Antes y después','Caso real','Mini documental','Mitos y verdades','Comparativa','FAQ','Opinión impopular','Cómo lo hacemos','Un día en','Tendencia adaptada'],
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    const pilares = (c.diagnostico && c.diagnostico.matriz && c.diagnostico.matriz.pilares) || ['Educación / Utilidad','Entretenimiento / Identidad','Conexión / Humano','Prueba / Producto'];
+    let html = '<div class="h-page"><div><h2>Contenido</h2><p>Cada pieza sale con gancho, guion completo, CTA, objetivo psicológico, objetivo de algoritmo, edición, SEO y su ICG esperado — lista para programar en el calendario.</p></div></div>';
+    if (!c.diagnostico) html += '<div class="warn">Sin diagnóstico, la IA no conoce los pilares ni la plataforma primaria. <b>Recomendado: genera el diagnóstico primero.</b></div>';
+
+    html += '<div class="card" style="margin-bottom:18px"><div class="card-b"><div class="fgrid" style="grid-template-columns:1.2fr 1.2fr 1fr .7fr auto;align-items:end">' +
+      '<div class="field"><label>Pilar</label><select id="gPilar"><option>Automático (mix de la etapa)</option>' + pilares.map(p => '<option>' + UI.esc(p) + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label>Formato</label><select id="gFmt">' + this.FORMATOS.map(f => '<option>' + UI.esc(f) + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label>Plataforma</label><select id="gPlat"><option>La primaria del cliente</option><option>Instagram</option><option>TikTok</option><option>Facebook</option></select></div>' +
+      '<div class="field"><label>Piezas</label><select id="gN"><option>2</option><option>3</option></select></div>' +
+      '<div class="field"><button class="btn pri" id="bGenC" style="width:100%">Generar ideas</button></div>' +
+      '</div><div id="cProg"></div>' +
+      '<p style="font-size:11.5px;color:var(--faint)">El generador respeta el mix de la etapa actual (mes ' + c.mes + ' → Etapa ' + Store.etapaDe(c.mes) + '), la biblioteca de formatos del método y las prácticas prohibidas. No repite ideas ya generadas (' + c.historial.length + ' en el historial).</p>' +
+      '</div></div>';
+
+    if (!c.contenidos.length){
+      html += '<div class="card"><div class="empty"><div class="art">✦</div><h4>Biblioteca vacía</h4><p>Genera tu primer lote de contenido fundamentado en el Método 3·2·1.</p></div></div>';
+    } else {
+      html += c.contenidos.slice().reverse().map(it => this.cardPieza(it)).join('');
+    }
+    el.innerHTML = html;
+    document.getElementById('bGenC').onclick = () => this.generar(c);
+    el.querySelectorAll('[data-prog]').forEach(b => b.onclick = () => this.programar(c, b.dataset.prog));
+    el.querySelectorAll('[data-delc]').forEach(b => b.onclick = () => {
+      c.contenidos = c.contenidos.filter(x => x.id !== b.dataset.delc); Store.save(); App.refresh();
+    });
+  },
+  cardPieza(it){
+    const m = (k,v) => v ? '<div class="m"><b>' + k + '</b><span>' + UI.esc(v) + '</span></div>' : '';
+    return '<details class="acc"><summary><span class="chip blue">' + UI.esc(it.formato) + '</span><span class="chip line">' + UI.esc(it.pilar||'') + '</span> ' + UI.esc(it.titulo) +
+      '<span class="car">▶</span></summary><div class="acc-b">' +
+      '<p style="margin:6px 0 10px"><b>Gancho (0–3 s):</b> ' + UI.esc(it.gancho) + '</p>' +
+      '<div class="script">' + UI.esc(it.guion) + '</div>' +
+      '<p style="margin:10px 0"><b>CTA:</b> ' + UI.esc(it.cta) + '</p>' +
+      '<div class="meta-grid">' +
+      m('Objetivo psicológico', it.objPsico) + m('Objetivo del algoritmo', it.objAlgoritmo) +
+      m('Duración', it.duracion) + m('Edición', it.edicion) + m('Plano / grabación', it.plano) +
+      m('Miniatura / portada', it.miniatura) + m('Keyword SEO', it.keyword) + m('Música', it.musica) +
+      m('Hashtags', (it.hashtags||[]).join(' ')) + m('ICG esperado', it.icgEsperado) +
+      m('Plataforma', it.plataforma) + m('Etapa', it.etapa) +
+      '</div><div style="display:flex;gap:8px;margin-top:14px">' +
+      '<button class="btn sm pri" data-prog="' + it.id + '">Programar en calendario</button>' +
+      '<button class="btn sm ghost danger" data-delc="' + it.id + '">Eliminar</button></div></div></details>';
+  },
+  async generar(c){
+    const prog = document.getElementById('cProg');
+    const btn = document.getElementById('bGenC'); btn.disabled = true;
+    const pilar = document.getElementById('gPilar').value, fmt = document.getElementById('gFmt').value,
+          plat = document.getElementById('gPlat').value, n = +document.getElementById('gN').value;
+    const nuevas = [];
+    try{
+      for (let i = 1; i <= n; i++){
+        prog.innerHTML = UI.thinking('Diseñando pieza ' + i + ' de ' + n + ' con las estructuras del método…');
+        const it = await AI.json(
+          AI.system(['principios','algoritmos','formatos','evitar','operativo'], 'Diseñas UNA pieza de contenido lista para producir.'),
+          AI.clienteCtx(c) +
+          '\nPedido: 1 pieza. Pilar: ' + pilar + '. Formato: ' + fmt + '. Plataforma: ' + plat + '.' +
+          ((c.historial.length || nuevas.length) ? '\nNO repitas ninguna de estas ideas ya usadas: ' + JSON.stringify(c.historial.slice(-40).concat(nuevas)) : '') +
+          (c.banco.filter(b => b.icg >= 1.2).length ? '\nPrioriza variaciones de las estructuras ganadoras del Banco (Regla de 3).' : '') +
+          '\nDevuelve JSON (UN solo objeto): {"titulo":str,"formato":str,"pilar":str,"plataforma":str,"etapa":"Etapa 1|2|3","gancho":str literal para decir/mostrar en 0-3s con la keyword,"guion":str guion completo con marcas de tiempo y qué se ve/dice (5-8 líneas, usa \\n),"cta":str un solo CTA del método,"objPsico":str máx 8 palabras,"objAlgoritmo":str señal que fabrica máx 8 palabras,"duracion":str,"edicion":str máx 12 palabras,"plano":str máx 10 palabras,"miniatura":str máx 12 palabras,"hashtags":[3-5 con #],"keyword":str,"musica":str máx 8 palabras,"icgEsperado":str p.ej "1.2-1.4 (gancho de aversión a la pérdida)"}. Guion específico de ESTE negocio con sus productos y ciudad reales.');
+        it.id = Store.uid(); it.creado = new Date().toISOString();
+        c.contenidos.push(it); c.historial.push(it.titulo); nuevas.push(it.titulo);
+        Store.save();
+      }
+      App.refresh(); UI.toast(n + ' piezas nuevas en la biblioteca');
+    }catch(e){
+      App.refresh();
+      UI.toast('Error al generar' + (nuevas.length ? ' (se guardaron ' + nuevas.length + ' piezas)' : '') + ': ' + e.message);
+    }
+  },
+  programar(c, id){
+    const it = c.contenidos.find(x => x.id === id); if (!it) return;
+    const hoy = new Date().toISOString().slice(0,10);
+    UI.modal('Programar pieza', '<div class="field"><label>Fecha de publicación</label><input type="date" id="pFecha" value="' + hoy + '"></div>' +
+      '<button class="btn pri" id="pOk" style="width:100%">Agregar al calendario</button>', () => {
+      document.getElementById('pOk').onclick = () => {
+        c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: document.getElementById('pFecha').value, publicado: false });
+        Store.save(); UI.closeModal(); UI.toast('Programado'); App.go('cal');
+      };
+    });
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S5 — js/screens/calendario.js · PANTALLA 5: Calendario
+   Vista mensual y semanal · arrastrar y soltar · duplicar ·
+   marcar como publicado.
+   ════════════════════════════════════════════════════════════════ */
+const S_Cal = {
+  title: 'Calendario',
+  vista: 'mes',
+  cursor: new Date(),
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    const cur = this.cursor;
+    let html = '<div class="h-page"><div><h2>Calendario editorial</h2><p>Arrastra las piezas entre días para moverlas. El método recomienda 4–5 piezas de feed por semana en días alternados.</p></div>' +
+      '<div style="display:flex;gap:8px"><div class="seg"><button id="vMes" class="' + (this.vista==='mes'?'on':'') + '">Mes</button><button id="vSem" class="' + (this.vista==='sem'?'on':'') + '">Semana</button></div>' +
+      '<button class="btn" id="bPlan" title="La IA programa la semana siguiente con la plantilla del método">Planificar semana con IA</button></div></div>' +
+      '<div id="calProg"></div>' +
+      '<div class="cal-head"><button class="btn sm" id="cPrev">←</button><h3 id="cTitle"></h3><button class="btn sm" id="cNext">→</button><button class="btn sm ghost" id="cHoy">Hoy</button></div>' +
+      '<div id="calBody"></div>';
+    el.innerHTML = html;
+    document.getElementById('vMes').onclick = () => { this.vista='mes'; App.refresh(); };
+    document.getElementById('vSem').onclick = () => { this.vista='sem'; App.refresh(); };
+    document.getElementById('cPrev').onclick = () => { this.mueve(-1); };
+    document.getElementById('cNext').onclick = () => { this.mueve(1); };
+    document.getElementById('cHoy').onclick = () => { this.cursor = new Date(); App.refresh(); };
+    document.getElementById('bPlan').onclick = () => this.planSemana(c);
+    this.pinta(c);
+  },
+  mueve(dir){
+    const d = this.cursor;
+    if (this.vista === 'mes') this.cursor = new Date(d.getFullYear(), d.getMonth() + dir, 1);
+    else this.cursor = new Date(d.getFullYear(), d.getMonth(), d.getDate() + dir * 7);
+    App.refresh();
+  },
+  iso(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); },
+  itemHTML(it){
+    return '<div class="cal-it' + (it.publicado ? ' pub' : '') + '" draggable="true" data-cit="' + it.id + '">' +
+      '<span class="f">' + UI.esc(it.formato||'') + '</span>' + UI.esc(it.titulo) +
+      '<div class="acts"><button data-pub="' + it.id + '" title="Marcar publicado">✓</button><button data-mov="' + it.id + '" title="Mover a otra fecha">⇄</button><button data-dup="' + it.id + '" title="Duplicar">⧉</button><button data-del="' + it.id + '" title="Quitar">✕</button></div></div>';
+  },
+  pinta(c){
+    const body = document.getElementById('calBody');
+    const hoy = this.iso(new Date());
+    const DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    if (this.vista === 'mes'){
+      const y = this.cursor.getFullYear(), m = this.cursor.getMonth();
+      document.getElementById('cTitle').textContent = this.cursor.toLocaleDateString('es-MX', { month:'long', year:'numeric' }).replace(/^./, s => s.toUpperCase());
+      const first = new Date(y, m, 1);
+      const start = new Date(y, m, 1 - ((first.getDay() + 6) % 7));
+      let g = '<div class="cal-grid">' + DOW.map(d => '<div class="cal-dow">' + d + '</div>').join('');
+      for (let i = 0; i < 42; i++){
+        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+        const k = this.iso(d);
+        const its = c.calendario.filter(x => x.fecha === k);
+        g += '<div class="cal-day' + (d.getMonth() !== m ? ' out' : '') + (k === hoy ? ' today' : '') + '" data-day="' + k + '"><span class="dnum">' + d.getDate() + '</span>' +
+          its.map(it => this.itemHTML(it)).join('') + '</div>';
+      }
+      body.innerHTML = g + '</div>';
+    } else {
+      const d0 = new Date(this.cursor);
+      d0.setDate(d0.getDate() - ((d0.getDay() + 6) % 7));
+      const d6 = new Date(d0); d6.setDate(d0.getDate() + 6);
+      document.getElementById('cTitle').textContent = 'Semana del ' + UI.fecha(this.iso(d0)) + ' al ' + UI.fecha(this.iso(d6));
+      let g = '<div class="week-grid">';
+      for (let i = 0; i < 7; i++){
+        const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + i);
+        const k = this.iso(d);
+        g += '<div class="week-col' + (k === hoy ? ' today' : '') + '" data-day="' + k + '"><h5>' + DOW[i] + ' ' + d.getDate() + '</h5>' +
+          c.calendario.filter(x => x.fecha === k).map(it => this.itemHTML(it)).join('') + '</div>';
+      }
+      body.innerHTML = g + '</div>';
+    }
+    this.wire(c, body);
+  },
+  wire(c, body){
+    body.querySelectorAll('[data-cit]').forEach(elc => {
+      elc.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', elc.dataset.cit); });
+    });
+    body.querySelectorAll('[data-day]').forEach(day => {
+      day.addEventListener('dragover', e => { e.preventDefault(); day.classList.add('over'); });
+      day.addEventListener('dragleave', () => day.classList.remove('over'));
+      day.addEventListener('drop', e => {
+        e.preventDefault(); day.classList.remove('over');
+        const it = c.calendario.find(x => x.id === e.dataTransfer.getData('text/plain'));
+        if (it){ it.fecha = day.dataset.day; Store.save(); this.pinta(c); }
+      });
+    });
+    body.querySelectorAll('[data-pub]').forEach(b => b.onclick = () => {
+      const it = c.calendario.find(x => x.id === b.dataset.pub);
+      it.publicado = !it.publicado; Store.save(); this.pinta(c);
+      if (it.publicado) UI.toast('Publicado ✓ — registra sus métricas en el Banco a las 72 h y 7 días');
+    });
+    body.querySelectorAll('[data-mov]').forEach(b => b.onclick = () => {
+      const it = c.calendario.find(x => x.id === b.dataset.mov);
+      UI.modal('Mover pieza', '<div class="field"><label>Nueva fecha</label><input type="date" id="mvF" value="' + it.fecha + '"></div>' +
+        '<button class="btn pri" id="mvOk" style="width:100%">Mover</button>', () => {
+        document.getElementById('mvOk').onclick = () => {
+          it.fecha = document.getElementById('mvF').value || it.fecha;
+          Store.save(); UI.closeModal(); S_Cal.pinta(c);
+        };
+      });
+    });
+    body.querySelectorAll('[data-dup]').forEach(b => b.onclick = () => {
+      const it = c.calendario.find(x => x.id === b.dataset.dup);
+      c.calendario.push(Object.assign({}, it, { id: Store.uid(), publicado:false }));
+      Store.save(); this.pinta(c);
+    });
+    body.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+      c.calendario = c.calendario.filter(x => x.id !== b.dataset.del); Store.save(); this.pinta(c);
+    });
+  },
+  async planSemana(c){
+    if (!c.contenidos.length){ UI.toast('Genera contenido primero: el calendario programa piezas de la biblioteca'); return; }
+    const prog = document.getElementById('calProg');
+    prog.innerHTML = UI.thinking('Asignando la semana con la plantilla semanal del método…');
+    try{
+      const pend = c.contenidos.filter(it => !c.calendario.some(k => k.contenidoId === it.id)).slice(0, 14);
+      if (!pend.length){ prog.innerHTML = ''; UI.toast('Todas las piezas de la biblioteca ya están programadas'); return; }
+      const d0 = new Date(); d0.setDate(d0.getDate() + ((8 - d0.getDay()) % 7 || 7)); // próximo lunes
+      const res = await AI.json(
+        AI.system(['operativo','principios'], 'Programas la semana siguiendo el calendario semanal tipo del método (lunes educativo, miércoles identidad, jueves serie/carrusel, viernes storytelling/prueba social, sábado comunidad).'),
+        'Etapa actual: Etapa ' + Store.etapaDe(c.mes) + '. Piezas disponibles: ' + JSON.stringify(pend.map(p => ({ id:p.id, titulo:p.titulo, formato:p.formato, pilar:p.pilar }))) +
+        '\nElige 4-5 piezas y asígnales día (0=lunes … 6=domingo) según la plantilla. Devuelve JSON: [{"id":str,"dia":0-6}]');
+      (Array.isArray(res) ? res : []).forEach(a => {
+        const it = pend.find(p => p.id === a.id); if (!it) return;
+        const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + (+a.dia || 0));
+        c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: this.iso(d), publicado:false });
+      });
+      Store.save(); this.cursor = d0; prog.innerHTML = ''; this.pinta(c); UI.toast('Semana planificada con la plantilla del método');
+    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S6 — js/screens/banco.js · PANTALLA 6: Banco de Ganadores
+   Registro de piezas publicadas → cálculo automático del ICG
+   (medianas móviles) → clasificación → replicar con IA (Regla de 3).
+   ════════════════════════════════════════════════════════════════ */
+const S_Banco = {
+  title: 'Banco de Ganadores',
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    const modoVenta = Store.etapaDe(c.mes) === 3;
+    const ganadores = c.banco.filter(b => b.icg >= 1.2);
+    const prom = c.banco.length ? (c.banco.reduce((s,b) => s + b.icg, 0) / c.banco.length) : 0;
+    let html = '<div class="h-page"><div><h2>Banco de Contenido Ganador</h2><p>Registra cada pieza a las 72 h y a los 7 días. El ICG se calcula contra la mediana móvil de tus últimas 15 piezas — la decisión es del dato, no del gusto.' +
+      (modoVenta ? ' <b>Mes 6: ICG en modo venta</b> (componente de conversión con peso 0.30).' : '') + '</p></div>' +
+      '<button class="btn pri" id="bReg">+ Registrar pieza</button></div>';
+
+    html += '<div class="grid4" style="margin-bottom:18px">' +
+      '<div class="card kpi"><div class="lbl">Piezas registradas</div><div class="val">' + c.banco.length + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">ICG promedio</div><div class="val" style="color:' + (prom >= 1 ? 'var(--green)' : 'var(--text)') + '">' + (prom ? prom.toFixed(2) : '—') + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Ganadoras (≥ 1.2)</div><div class="val">' + ganadores.length + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Estructuras a certificar</div><div class="val">' + this.estructuras(c).filter(e => e.n >= 3 && e.ok).length + '</div><div class="sub">Regla de 3: tres piezas ≥ 1.3</div></div></div>';
+
+    if (c.banco.length < 5) html += '<div class="note">Con menos de 5 piezas registradas las medianas aún son inestables; el método pide un mes de datos antes de podar nada.</div>';
+    html += '<div id="bProg"></div>';
+
+    if (!c.banco.length){
+      html += '<div class="card"><div class="empty"><div class="art">ICG</div><h4>El banco está vacío</h4><p>Cuando publiques una pieza del calendario, registra aquí sus métricas y el sistema calculará su ICG y la clasificará automáticamente.</p></div></div>';
+    } else {
+      html += '<div class="card"><div class="card-h"><h3>Registro y clasificación</h3><span class="hint">ordenado por ICG</span></div><div class="card-b" style="padding:0"><table class="tb"><tr><th>Pieza</th><th>Formato · Pilar</th><th>ICG</th><th>Clase</th><th>Acción del método</th><th></th></tr>' +
+        c.banco.slice().sort((a,b) => b.icg - a.icg).map(b => {
+          const cl = ICG.clase(b.icg);
+          return '<tr><td><b>' + UI.esc(b.titulo) + '</b><div style="font-size:11px;color:var(--faint)">' + UI.esc(b.estructura||'') + '</div></td>' +
+            '<td style="font-size:12px;color:var(--muted)">' + UI.esc(b.formato) + ' · ' + UI.esc(b.pilar||'—') + '</td>' +
+            '<td><span class="icg-hero" style="font-size:17px">' + b.icg.toFixed(2) + '</span></td>' +
+            '<td><span class="chip ' + cl.c + '">' + cl.t + '</span></td>' +
+            '<td style="font-size:12px;color:var(--muted)">' + cl.accion + '</td>' +
+            '<td style="white-space:nowrap">' + (b.icg >= 1.2 ? '<button class="btn sm" data-rep="' + b.id + '">Replicar ×3</button> ' : '') +
+            '<button class="btn sm ghost danger" data-delb="' + b.id + '">✕</button></td></tr>';
+        }).join('') + '</table></div></div>';
+
+      const est = this.estructuras(c).filter(e => e.n >= 2);
+      if (est.length){
+        html += '<div class="card" style="margin-top:16px"><div class="card-h"><h3>Estructuras (Regla de 3)</h3><span class="hint">una estructura se certifica con 3 piezas ≥ 1.3</span></div><div class="card-b" style="padding:0"><table class="tb"><tr><th>Estructura</th><th>Piezas</th><th>ICG medio</th><th>Estado</th></tr>' +
+          est.map(e => '<tr><td><b>' + UI.esc(e.k) + '</b></td><td class="num">' + e.n + '</td><td class="num">' + e.prom.toFixed(2) + '</td><td>' +
+            (e.n >= 3 && e.ok ? '<span class="chip gold">Certificada ✓</span>' : (e.ok ? '<span class="chip green">Promete · faltan ' + (3 - e.n) + ' réplicas</span>' : '<span class="chip gray">En observación</span>')) + '</td></tr>').join('') + '</table></div></div>';
+      }
+    }
+    el.innerHTML = html;
+    document.getElementById('bReg').onclick = () => this.formulario(c);
+    el.querySelectorAll('[data-delb]').forEach(b => b.onclick = () => {
+      c.banco = c.banco.filter(x => x.id !== b.dataset.delb);
+      this.recalcular(c); Store.save(); App.refresh();
+    });
+    el.querySelectorAll('[data-rep]').forEach(b => b.onclick = () => this.replicar(c, b.dataset.rep));
+  },
+  estructuras(c){
+    const map = {};
+    c.banco.forEach(b => {
+      const k = b.estructura || (b.formato + ' · ' + (b.pilar || ''));
+      (map[k] = map[k] || []).push(b.icg);
+    });
+    return Object.keys(map).map(k => {
+      const v = map[k];
+      return { k, n: v.length, prom: v.reduce((s,x) => s+x, 0) / v.length, ok: v.filter(x => x >= 1.3).length >= Math.min(3, v.length) && v.every(x => x >= 1.15) };
+    }).sort((a,b) => b.prom - a.prom);
+  },
+  recalcular(c){
+    const modoVenta = Store.etapaDe(c.mes) === 3;
+    c.banco.forEach(b => { b.icg = ICG.calc(c.banco, b, modoVenta && b.metricas.conversiones > 0); });
+  },
+  formulario(c){
+    const publicadas = c.calendario.filter(k => k.publicado && !c.banco.some(b => b.calId === k.id));
+    const num = (id, lbl, hint) => '<div class="field"><label>' + lbl + (hint ? '<small>' + hint + '</small>' : '') + '</label><input type="number" id="' + id + '" min="0" step="any" value="0"></div>';
+    UI.modal('Registrar pieza publicada',
+      (publicadas.length ? '<div class="field"><label>Pieza del calendario<small>o escribe una libre abajo</small></label><select id="rCal"><option value="">— libre —</option>' +
+        publicadas.map(p => '<option value="' + p.id + '">' + UI.esc(p.titulo) + '</option>').join('') + '</select></div>' : '') +
+      '<div class="field"><label>Título</label><input id="rTit" placeholder="nombre de la pieza"></div>' +
+      '<div class="fgrid c2">' +
+      '<div class="field"><label>Formato</label><select id="rFmt"><option>Reel</option><option>Carrusel</option><option>Historia</option><option>Post</option><option>Live</option><option>Anuncio</option></select></div>' +
+      '<div class="field"><label>Pilar</label><input id="rPil" placeholder="p. ej. Educación"></div></div>' +
+      '<div class="field"><label>Estructura<small>gancho + desarrollo replicable; agrupa piezas para la Regla de 3</small></label><input id="rEst" placeholder="p. ej. &quot;5 formas de usar X&quot;"></div>' +
+      '<div class="fs-title">Métricas a 7 días</div><div class="fgrid">' +
+      num('rAl','Alcance') + num('rRet','Retención %','promedio del video') + num('rCom','Compartidos') +
+      num('rGua','Guardados') + num('rVis','Visitas a perfil') + num('rCli','Clics') +
+      num('rDm','DMs iniciados') + num('rConv','Conversiones','ventas/leads atribuidos') + '</div>' +
+      '<button class="btn pri" id="rOk" style="width:100%">Calcular ICG y guardar</button>',
+      () => {
+        const sel = document.getElementById('rCal');
+        if (sel) sel.onchange = () => {
+          const p = publicadas.find(x => x.id === sel.value);
+          if (p){ document.getElementById('rTit').value = p.titulo; document.getElementById('rPil').value = p.pilar || ''; }
+        };
+        document.getElementById('rOk').onclick = () => {
+          const g = id => +document.getElementById(id).value || 0;
+          const pieza = { id: Store.uid(), calId: sel ? sel.value : '', fecha: new Date().toISOString().slice(0,10),
+            titulo: document.getElementById('rTit').value || 'Pieza sin título',
+            formato: document.getElementById('rFmt').value, pilar: document.getElementById('rPil').value,
+            estructura: document.getElementById('rEst').value,
+            metricas: { alcance:g('rAl'), retencion:g('rRet'), compartidos:g('rCom'), guardados:g('rGua'), visitas:g('rVis'), clics:g('rCli'), dms:g('rDm'), conversiones:g('rConv') } };
+          c.banco.push(pieza);
+          this.recalcular(c); Store.save(); UI.closeModal(); App.refresh();
+          const cl = ICG.clase(pieza.icg);
+          UI.toast('ICG ' + pieza.icg.toFixed(2) + ' · ' + cl.t);
+        };
+      });
+  },
+  async replicar(c, id){
+    const b = c.banco.find(x => x.id === id); if (!b) return;
+    const prog = document.getElementById('bProg');
+    const nuevas = [];
+    try{
+      for (let i = 1; i <= 3; i++){
+        prog.innerHTML = UI.thinking('Regla de 3 · réplica ' + i + ' de 3 de la estructura ganadora…');
+        const it = await AI.json(
+          AI.system(['principios','icg','formatos','algoritmos'], 'Aplicas la Regla de 3: replicas UNA vez una estructura ganadora con un tema distinto, manteniendo gancho y desarrollo.'),
+          AI.clienteCtx(c) + '\nEstructura ganadora: ' + JSON.stringify({ titulo:b.titulo, formato:b.formato, pilar:b.pilar, estructura:b.estructura, icg:b.icg }) +
+          '\nNo repitas: ' + JSON.stringify(c.historial.slice(-30).concat(nuevas)) +
+          '\nDevuelve JSON (UN solo objeto): {"titulo":str,"formato":str,"pilar":str,"plataforma":str,"etapa":str,"gancho":str,"guion":str 4-6 líneas con \\n,"cta":str,"objPsico":str,"objAlgoritmo":str,"duracion":str,"edicion":str,"plano":str,"miniatura":str,"hashtags":[3-5],"keyword":str,"musica":str,"icgEsperado":str}');
+        it.id = Store.uid(); it.creado = new Date().toISOString();
+        c.contenidos.push(it); c.historial.push(it.titulo); nuevas.push(it.titulo);
+        Store.save();
+      }
+      prog.innerHTML = ''; UI.toast('3 réplicas listas en Contenido'); App.go('con');
+    }catch(e){
+      prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + (nuevas.length ? ' · Se guardaron ' + nuevas.length + ' réplica(s) en Contenido.' : '') + '</div>';
+    }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S7 — js/screens/publicidad.js · PANTALLA 7: Publicidad
+   ════════════════════════════════════════════════════════════════ */
+const S_Ads = {
+  title: 'Publicidad',
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    const p = +c.intake.presupuesto || 0;
+    const nivel = p ? (p < 300 ? 'A · Local básico' : (p <= 1500 ? 'B · Crecimiento' : 'C · Agresivo')) : null;
+    const mesPct = [5,10,15,20,20,30][c.mes - 1];
+    const ganadores = c.banco.filter(b => b.icg >= 1.2);
+    let html = '<div class="h-page"><div><h2>Publicidad</h2><p>La pauta amplifica lo validado: solo corren creativos con ICG ≥ 1.2 o derivados directos. Si un anuncio muere, se vuelve al Banco, no al brainstorming.</p></div>' +
+      '<button class="btn pri" id="bCamp">Diseñar campaña del mes</button></div>';
+
+    html += '<div class="grid3" style="margin-bottom:18px">' +
+      '<div class="card kpi"><div class="lbl">Nivel de presupuesto</div><div class="val" style="font-size:19px">' + (nivel || 'Sin definir') + '</div><div class="sub">' + (p ? UI.fmtMoney(p) + ' / mes' : 'captura el presupuesto en la ficha') + '</div></div>' +
+      '<div class="card kpi"><div class="lbl">Este mes (M' + c.mes + ' → ' + mesPct + '% del semestre)</div><div class="val">' + (p ? UI.fmtMoney(p * 6 * mesPct / 100) : '—') + '</div><div class="sub">distribución fija 5/10/15/20/20/30</div></div>' +
+      '<div class="card kpi"><div class="lbl">Creativos elegibles (ICG ≥ 1.2)</div><div class="val">' + ganadores.length + '</div><div class="sub">' + (ganadores.length ? 'listos para pauta' : 'aún sin validar — el orgánico investiga primero') + '</div></div></div>';
+
+    html += '<div id="adProg"></div>';
+    if (!c.campanas.length){
+      html += '<div class="card"><div class="empty"><div class="art">Ads</div><h4>Sin campañas diseñadas</h4><p>El estratega arma la campaña del mes según tu etapa, nivel de presupuesto y creativos ganadores: objetivos, audiencias, remarketing por temperatura, creativos y KPI.</p></div></div>';
+    } else {
+      c.campanas.slice().reverse().forEach(k => {
+        html += '<details class="acc" open><summary><span class="chip blue">Mes ' + k.mes + '</span> ' + UI.esc(k.nombre) + '<span class="car">▶</span></summary><div class="acc-b">' +
+          '<p style="margin-bottom:10px"><b>Objetivo:</b> ' + UI.esc(k.objetivo) + ' · <b>Presupuesto:</b> ' + UI.esc(k.presupuesto) + '</p>';
+        if (k.campanas && k.campanas.length){
+          html += '<table class="tb"><tr><th>Campaña</th><th>Objetivo de plataforma</th><th>Audiencia</th><th>% Ppto</th><th>Creativo</th><th>KPI meta</th></tr>' +
+            k.campanas.map(a => '<tr><td><b>' + UI.esc(a.nombre) + '</b></td><td>' + UI.esc(a.objetivoPlataforma) + '</td><td style="font-size:12px">' + UI.esc(a.audiencia) + '</td><td class="num">' + UI.esc(a.pct) + '</td><td style="font-size:12px">' + UI.esc(a.creativo) + '</td><td style="font-size:12px">' + UI.esc(a.kpi) + '</td></tr>').join('') + '</table>';
+        }
+        if (k.remarketing) html += '<p style="font-size:12.5px;margin-top:10px"><b>Remarketing:</b> ' + UI.esc(k.remarketing) + '</p>';
+        if (k.reglas) html += '<p style="font-size:12.5px;color:var(--muted);margin-top:6px"><b>Reglas de operación:</b> ' + UI.esc(k.reglas) + '</p>';
+        html += '<button class="btn sm ghost danger" data-delk="' + k.id + '" style="margin-top:10px">Eliminar</button></div></details>';
+      });
+    }
+    el.innerHTML = html;
+    document.getElementById('bCamp').onclick = () => this.generar(c);
+    el.querySelectorAll('[data-delk]').forEach(b => b.onclick = () => {
+      c.campanas = c.campanas.filter(x => x.id !== b.dataset.delk); Store.save(); App.refresh();
+    });
+  },
+  async generar(c){
+    const prog = document.getElementById('adProg');
+    prog.innerHTML = UI.thinking('Diseñando la campaña del mes ' + c.mes + ' según etapa y nivel de presupuesto…');
+    try{
+      const ganadores = c.banco.filter(b => b.icg >= 1.2).map(b => b.titulo + ' (ICG ' + b.icg.toFixed(2) + ')');
+      const res = await AI.json(
+        AI.system(['principios','etapa' + Store.etapaDe(c.mes), 'operativo'], 'Eres el media buyer del método. Diseñas la estructura publicitaria del mes actual.'),
+        AI.clienteCtx(c) + '\nMes del programa: ' + c.mes + '. Creativos ganadores disponibles: ' + (ganadores.length ? JSON.stringify(ganadores) : 'ninguno aún (respeta el Principio 1: sin ICG ≥ 1.2 no hay prospección con presupuesto significativo)') +
+        '\nDevuelve JSON: {"nombre":str nombre de la campaña del mes,"objetivo":str máx 15 palabras,"presupuesto":str cómo se reparte el monto del mes,"campanas":[2-4 objetos {"nombre":str,"objetivoPlataforma":str p.ej. interacción/video views/conversiones,"audiencia":str específica,"pct":str "40%","creativo":str qué pieza o derivado,"kpi":str meta numérica}],"remarketing":str máx 30 palabras públicos por temperatura y secuencia,"reglas":str máx 25 palabras (frecuencia, rotación, cuándo apagar)}');
+      res.id = Store.uid(); res.mes = c.mes;
+      c.campanas.push(res); Store.save(); App.refresh(); UI.toast('Campaña del mes diseñada');
+    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S8 — js/screens/autos.js · PANTALLA 8: Automatizaciones
+   ════════════════════════════════════════════════════════════════ */
+const S_Autos = {
+  title: 'Automatizaciones',
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    let html = '<div class="h-page"><div><h2>Automatizaciones</h2><p>El puente de conversión del método: palabra clave → DM automático → calificación → WhatsApp → humano en menos de 5 minutos. Speed-to-lead = dinero.</p></div></div>';
+
+    html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Flujo estándar del método</h3></div><div class="card-b"><div class="script" style="font-family:var(--mono);font-size:11.5px">Reel/Anuncio → Comentario con palabra clave → DM automático (ManyChat)\n→ 1 pregunta calificadora → valor + link → WhatsApp / agenda / landing\n→ conversación humana (&lt;5 min) → VENTA → etiqueta en CRM\n→ secuencia post-venta → fidelización → referido</div>' +
+      '<div class="fgrid" style="grid-template-columns:1fr 1fr 1fr auto;align-items:end;margin-top:14px">' +
+      '<div class="field"><label>Canal</label><select id="aCanal"><option>ManyChat (DM Instagram)</option><option>WhatsApp Business</option><option>Email</option><option>CRM / seguimiento</option><option>Flujo completo (comentario → venta)</option></select></div>' +
+      '<div class="field"><label>Objetivo</label><select id="aObj"><option>Capturar y calificar leads</option><option>Agendar citas</option><option>Entregar lead magnet</option><option>Cerrar venta por DM</option><option>Recompra / fidelización</option><option>Recuperar carritos o DMs fríos</option></select></div>' +
+      '<div class="field"><label>Palabra clave</label><input id="aKw" placeholder="p. ej. PRECIO, GUÍA, AGENDA"></div>' +
+      '<div class="field"><button class="btn pri" id="bAuto">Generar secuencia</button></div></div><div id="aProg"></div></div></div>';
+
+    if (!c.autos.length){
+      html += '<div class="card"><div class="empty"><div class="art">⚡</div><h4>Sin secuencias creadas</h4><p>Genera flujos con mensajes literales listos para pegar en ManyChat, WhatsApp o tu herramienta de email.</p></div></div>';
+    } else {
+      c.autos.slice().reverse().forEach(a => {
+        html += '<details class="acc"><summary><span class="chip blue">' + UI.esc(a.canal) + '</span> ' + UI.esc(a.nombre) + '<span class="car">▶</span></summary><div class="acc-b">';
+        if (a.pasos && a.pasos.length){
+          html += a.pasos.map((p,i) => '<div style="display:flex;gap:10px;margin-bottom:10px"><span class="chip gray" style="font-family:var(--mono)">' + (i+1) + '</span><div><b style="font-size:12.5px">' + UI.esc(p.paso) + '</b>' +
+            (p.mensaje ? '<div class="script" style="margin-top:5px">' + UI.esc(p.mensaje) + '</div>' : '') +
+            (p.nota ? '<p style="font-size:11.5px;color:var(--faint);margin-top:4px">' + UI.esc(p.nota) + '</p>' : '') + '</div></div>').join('');
+        }
+        if (a.cadencia) html += '<p style="font-size:12.5px;margin-top:8px"><b>Seguimiento 24-72-7:</b> ' + UI.esc(a.cadencia) + '</p>';
+        html += '<button class="btn sm ghost danger" data-dela="' + a.id + '" style="margin-top:8px">Eliminar</button></div></details>';
+      });
+    }
+    el.innerHTML = html;
+    document.getElementById('bAuto').onclick = () => this.generar(c);
+    el.querySelectorAll('[data-dela]').forEach(b => b.onclick = () => {
+      c.autos = c.autos.filter(x => x.id !== b.dataset.dela); Store.save(); App.refresh();
+    });
+  },
+  async generar(c){
+    const prog = document.getElementById('aProg');
+    prog.innerHTML = UI.thinking('Escribiendo la secuencia con los guiones del método…');
+    const canal = document.getElementById('aCanal').value, obj = document.getElementById('aObj').value, kw = document.getElementById('aKw').value;
+    try{
+      const res = await AI.json(
+        AI.system(['etapa3','principios'], 'Diseñas automatizaciones de conversión con los guiones y reglas del método (speed-to-lead <5 min, 1 pregunta calificadora, cadencia 24-72-7, cierre asumido con 2 opciones).'),
+        AI.clienteCtx(c) + '\nCanal: ' + canal + '. Objetivo: ' + obj + '. Palabra clave: ' + (kw || 'proponla tú') + '.' +
+        '\nDevuelve JSON: {"nombre":str,"canal":str corto,"pasos":[4-6 objetos {"paso":str qué ocurre máx 10 palabras,"mensaje":str texto LITERAL del mensaje con el tono del negocio (usa [Nombre] como variable),"nota":str opcional máx 12 palabras}],"cadencia":str máx 30 palabras qué se envía a las 24h, 72h y día 7}');
+      res.id = Store.uid();
+      c.autos.push(res); Store.save(); App.refresh(); UI.toast('Secuencia lista');
+    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S9 — js/screens/dashboard.js · PANTALLA 9: Dashboard
+   KPI semanales, ROAS/CPA/CPL, benchmarks del método, gráficas SVG
+   y alertas inteligentes (reglas de diagnóstico por síntoma).
+   ════════════════════════════════════════════════════════════════ */
+const S_Dash = {
+  title: 'Dashboard',
+  render(el){
+    const c = Store.client();
+    if (!c){ el.innerHTML = App.sinCliente(); return; }
+    const M = c.metricas;
+    const last = M[M.length - 1] || {};
+    const prev = M[M.length - 2] || {};
+    const roas = last.gasto > 0 ? (last.ingresos || 0) / last.gasto : null;
+    const cpa = last.conversiones > 0 ? (last.gasto || 0) / last.conversiones : null;
+    const cpl = last.dms > 0 ? (last.gasto || 0) / last.dms : null;
+    const icgProm = c.banco.length ? c.banco.reduce((s,b) => s + b.icg, 0) / c.banco.length : null;
+    const delta = (a,b) => (a != null && b != null && b !== 0) ? Math.round((a - b) / b * 100) : null;
+
+    let html = '<div class="h-page"><div><h2>Dashboard</h2><p>Ritual de los viernes: registrar métricas, calcular ICG, clasificar, decidir réplicas. La disciplina de este ritual es la diferencia entre una agencia que opina y una que sabe.</p></div>' +
+      '<div style="display:flex;gap:8px"><button class="btn" id="bSem">+ Registrar semana</button><button class="btn pri" id="bAn" ' + (M.length ? '' : 'disabled') + '>Análisis del estratega</button></div></div>';
+
+    const kpi = (lbl, val, sub, d) => '<div class="card kpi"><div class="lbl">' + lbl + '</div><div class="val">' + val + '</div><div class="sub">' +
+      (d != null ? '<span style="color:' + (d >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (d >= 0 ? '▲' : '▼') + ' ' + Math.abs(d) + '%</span> vs semana previa' : (sub || '')) + '</div></div>';
+    html += '<div class="grid4" style="margin-bottom:14px">' +
+      kpi('Alcance semanal', last.alcance != null ? (+last.alcance).toLocaleString() : '—', M.length ? 'total de la semana' : 'sin registros', delta(last.alcance, prev.alcance)) +
+      kpi('Retención promedio', last.retencion != null ? last.retencion + '%' : '—', 'benchmark 40–45%', delta(last.retencion, prev.retencion)) +
+      kpi('Interacción / alcance', last.alcance > 0 ? ((last.interaccion||0) / last.alcance * 100).toFixed(1) + '%' : '—', 'benchmark 5–8%', null) +
+      kpi('Seguidores', last.seguidores != null ? (+last.seguidores).toLocaleString() : '—', 'vanidad controlada: se reporta, no se optimiza', delta(last.seguidores, prev.seguidores)) + '</div>' +
+      '<div class="grid4" style="margin-bottom:18px">' +
+      kpi('ICG promedio del banco', icgProm ? icgProm.toFixed(2) : '—', 'meta: ≥ 50% de piezas con ICG > 1') +
+      kpi('ROAS', roas != null ? roas.toFixed(1) + '×' : '—', 'meta mes 6: ≥ 3 retail · ≥ 5 ticket alto') +
+      kpi('CPA', cpa != null ? UI.fmtMoney(cpa) : '—', 'costo por conversión') +
+      kpi('CPL', cpl != null ? UI.fmtMoney(cpl) : '—', 'costo por DM/lead iniciado') + '</div>';
+
+    // Embudo del método
+    if (last.alcance > 0){
+      const f = [
+        ['Alcance', +last.alcance || 0],
+        ['Interacciones', +last.interaccion || 0],
+        ['Visitas a perfil', +last.visitas || 0],
+        ['DMs / leads', +last.dms || 0],
+        ['Conversiones', +last.conversiones || 0]
+      ];
+      html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Embudo de la semana</h3><span class="hint">Atención → Interés → Confianza → Acción</span></div><div class="card-b">' +
+        f.map((x,i) => {
+          const pct = f[0][1] ? Math.max(.5, x[1] / f[0][1] * 100) : 0;
+          return '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="width:120px;font-size:12px;color:var(--muted)">' + x[0] + '</span>' +
+            '<div style="flex:1;height:22px;background:#F0F2F6;border-radius:5px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + (i === f.length-1 ? 'var(--green)' : 'var(--blue)') + ';opacity:' + (1 - i*.12) + '"></div></div>' +
+            '<b class="num" style="width:80px;text-align:right;font-family:var(--mono);font-size:12.5px">' + x[1].toLocaleString() + '</b></div>';
+        }).join('') + '</div></div>';
+    }
+
+    // Gráficas
+    if (M.length >= 2){
+      const lbl = M.map(m => m.semana.slice(5));
+      html += '<div class="grid2" style="margin-bottom:18px">' +
+        '<div class="card"><div class="card-h"><h3>Alcance</h3></div><div class="card-b">' + UI.svgLine(M.map(m => m.alcance), lbl) + '</div></div>' +
+        '<div class="card"><div class="card-h"><h3>Conversiones</h3></div><div class="card-b">' + UI.svgLine(M.map(m => m.conversiones), lbl, 520, 150, 'var(--green)') + '</div></div></div>';
+    }
+
+    // Alertas inteligentes (reglas 12.7 / 12.8 del método, evaluadas en código)
+    const alertas = this.alertas(c, last, prev, icgProm);
+    html += '<div class="grid2"><div class="card"><div class="card-h"><h3>Alertas inteligentes</h3><span class="hint">diagnóstico por síntoma (método §12.7–12.8)</span></div><div class="card-b">' +
+      (alertas.length ? alertas.map(a => '<div class="alert-it"><div class="ic" style="background:var(--' + a.c + '-t);color:var(--' + a.c + ')">' + a.i + '</div><div><b>' + a.t + '</b><p>' + a.p + '</p></div></div>').join('')
+        : '<div class="empty" style="padding:24px"><p>Sin alertas. Registra semanas y piezas para que el sistema vigile los síntomas del método.</p></div>') +
+      '</div></div><div class="card"><div class="card-h"><h3>Análisis del estratega</h3></div><div class="card-b" id="anBox">' +
+      (c.analisis ? '<div style="font-size:13px;white-space:pre-wrap">' + UI.esc(c.analisis) + '</div>' : '<p style="color:var(--faint);font-size:13px">Pide un análisis: la IA lee tus métricas y responde con el diagnóstico y la acción correctiva del método.</p>') +
+      '</div></div></div>';
+
+    if (M.length){
+      html += '<div class="card" style="margin-top:18px"><div class="card-h"><h3>Histórico semanal</h3></div><div class="card-b" style="padding:0;overflow-x:auto"><table class="tb"><tr><th>Semana</th><th>Alcance</th><th>Ret. %</th><th>Interac.</th><th>Visitas</th><th>DMs</th><th>Conv.</th><th>Seguid.</th><th>Gasto</th><th>Ingresos</th><th></th></tr>' +
+        M.slice().reverse().map(m => '<tr><td class="num">' + UI.esc(m.semana) + '</td><td class="num">' + (+m.alcance||0).toLocaleString() + '</td><td class="num">' + (m.retencion||0) + '</td><td class="num">' + (m.interaccion||0) + '</td><td class="num">' + (m.visitas||0) + '</td><td class="num">' + (m.dms||0) + '</td><td class="num">' + (m.conversiones||0) + '</td><td class="num">' + (m.seguidores||0) + '</td><td class="num">' + (m.gasto||0) + '</td><td class="num">' + (m.ingresos||0) + '</td>' +
+          '<td><button class="btn sm ghost danger" data-delm="' + m.semana + '">✕</button></td></tr>').join('') + '</table></div></div>';
+    }
+    el.innerHTML = html;
+    document.getElementById('bSem').onclick = () => this.formulario(c);
+    const bAn = document.getElementById('bAn');
+    if (bAn && !bAn.disabled) bAn.onclick = () => this.analizar(c);
+    el.querySelectorAll('[data-delm]').forEach(b => b.onclick = () => {
+      c.metricas = c.metricas.filter(x => x.semana !== b.dataset.delm); Store.save(); App.refresh();
+    });
+  },
+  alertas(c, last, prev, icgProm){
+    const A = [];
+    if (prev.alcance > 0 && last.alcance > 0 && last.alcance < prev.alcance * 0.6)
+      A.push({ i:'!', c:'red', t:'El alcance cayó más de 40%', p:'Si se repite una segunda semana: auditoría completa — originalidad, engagement bait, consistencia temática y cambios de algoritmo (§12.8).' });
+    if (last.alcance > 0 && last.retencion > 0 && last.retencion < 35)
+      A.push({ i:'▲', c:'amber', t:'Alto alcance, baja retención', p:'El gancho promete y el cuerpo no cumple: sube densidad, pattern interrupts cada 3–5 s y cumple la promesa del gancho.' });
+    if (last.alcance > 0 && (last.interaccion||0) / last.alcance > 0.05 && (last.conversiones||0) === 0 && Store.etapaDe(c.mes) >= 2)
+      A.push({ i:'→', c:'blue', t:'Engagement alto, cero ventas', p:'Falta el puente de conversión: CTA de palabra clave + DM automatizado + oferta clara (§12.7).' });
+    if (prev.seguidores > 0 && last.seguidores > prev.seguidores && prev.alcance > 0 && last.alcance < prev.alcance)
+      A.push({ i:'◇', c:'amber', t:'Seguidores suben, alcance baja', p:'El contenido gusta al círculo actual pero no descubre: aumenta formatos de descubrimiento (POV, ranking, tendencia adaptada).' });
+    if (icgProm != null && icgProm < 0.9 && c.banco.length >= 6)
+      A.push({ i:'ICG', c:'red', t:'ICG promedio bajo con muestra suficiente', p:'Si tras 6 semanas ninguna pieza supera 1.2, el problema no es el formato: reabrir pilares y propuesta de valor con el cliente (§12.8).' });
+    if (last.gasto > 0 && last.dms > 0 && (last.conversiones||0) / last.dms < 0.1 && Store.etapaDe(c.mes) === 3)
+      A.push({ i:'%', c:'amber', t:'Conversión DM→venta por debajo de 10%', p:'Con tráfico sano, el problema es la oferta o el cierre: revisa oferta (bonus stack), precio ancla y speed-to-lead <5 min.' });
+    const pub = c.calendario.filter(k => k.publicado).length;
+    if (pub > 0 && c.banco.length < pub)
+      A.push({ i:'✎', c:'blue', t:(pub - c.banco.length) + ' pieza(s) publicadas sin registrar', p:'Sin registro no hubo prueba: captura sus métricas en el Banco a las 72 h y 7 días.' });
+    return A;
+  },
+  formulario(c){
+    const semDef = new Date().toISOString().slice(0,10);
+    const num = (id,l) => '<div class="field"><label>' + l + '</label><input type="number" id="' + id + '" min="0" step="any" value="0"></div>';
+    UI.modal('Registrar semana',
+      '<div class="field"><label>Semana (fecha del viernes)</label><input type="date" id="mSem" value="' + semDef + '"></div><div class="fgrid">' +
+      num('mAl','Alcance') + num('mRet','Retención prom. %') + num('mInt','Interacciones') +
+      num('mVis','Visitas a perfil') + num('mDm','DMs / leads') + num('mConv','Conversiones') +
+      num('mSeg','Seguidores totales') + num('mGas','Gasto en pauta (USD)') + num('mIng','Ingresos atribuidos (USD)') +
+      '</div><button class="btn pri" id="mOk" style="width:100%">Guardar semana</button>',
+      () => {
+        document.getElementById('mOk').onclick = () => {
+          const g = id => +document.getElementById(id).value || 0;
+          c.metricas.push({ semana: document.getElementById('mSem').value,
+            alcance:g('mAl'), retencion:g('mRet'), interaccion:g('mInt'), visitas:g('mVis'),
+            dms:g('mDm'), conversiones:g('mConv'), seguidores:g('mSeg'), gasto:g('mGas'), ingresos:g('mIng') });
+          c.metricas.sort((a,b) => a.semana < b.semana ? -1 : 1);
+          Store.save(); UI.closeModal(); App.refresh(); UI.toast('Semana registrada');
+        };
+      });
+  },
+  async analizar(c){
+    const box = document.getElementById('anBox');
+    box.innerHTML = UI.thinking('Leyendo métricas con las tablas de diagnóstico del método…');
+    try{
+      const txt = await AI.raw(
+        AI.system(['operativo','icg','principios'], 'Analizas el dashboard como estratega senior. Estructura tu respuesta en 3 bloques breves titulados DIAGNÓSTICO, ACCIÓN DE LA SEMANA y RIESGO, cada uno de 2-3 frases, aplicando el diagnóstico por síntoma y las reglas de intervención. Nada genérico: usa los números reales.', true),
+        AI.clienteCtx(c) + '\nMétricas semanales: ' + JSON.stringify(c.metricas.slice(-6)) +
+        '\nBanco (título, icg): ' + JSON.stringify(c.banco.map(b => [b.titulo, b.icg]).slice(-10)));
+      c.analisis = txt.trim(); Store.save(); App.refresh();
+    }catch(e){ box.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO S10 — js/screens/metodo.js · Base de conocimiento,
+   módulos de actualización (nuevas plataformas / algoritmos) y
+   respaldo de datos. Aquí se actualiza el sistema sin tocar código.
+   ════════════════════════════════════════════════════════════════ */
+const S_Metodo = {
+  title: 'Método y actualizaciones',
+  render(el){
+    let html = '<div class="h-page"><div><h2>Método 3·2·1 · v' + KB.version + '</h2><p>La base de conocimiento gobierna cada respuesta de la IA. Agrega módulos para nuevas plataformas (TikTok Shop, Threads, YouTube, Pinterest, LinkedIn), cambios de algoritmo o nuevas fórmulas — sin romper la aplicación.</p></div></div>';
+
+    html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Módulos de actualización</h3><span class="hint">se inyectan en todas las llamadas de IA; el más reciente manda</span></div><div class="card-b">';
+    const mods = Store.data.modules || [];
+    if (mods.length){
+      html += '<table class="tb" style="margin-bottom:14px"><tr><th>Módulo</th><th>Fecha</th><th>Reglas</th><th></th></tr>' +
+        mods.map(m => '<tr><td><b>' + UI.esc(m.nombre) + '</b></td><td class="num">' + UI.esc(m.fecha) + '</td><td style="font-size:12px;color:var(--muted)">' + UI.esc((m.reglas||'').slice(0,140)) + ((m.reglas||'').length > 140 ? '…' : '') + '</td>' +
+          '<td style="white-space:nowrap"><button class="btn sm" data-tog="' + m.id + '">' + (m.activo === false ? 'Activar' : 'Pausar') + '</button> <button class="btn sm ghost danger" data-delmod="' + m.id + '">✕</button></td></tr>').join('') + '</table>';
+    } else {
+      html += '<p style="color:var(--faint);font-size:13px;margin-bottom:14px">Sin módulos. Ejemplo: "TikTok Shop — los videos con producto etiquetado entran a superficies de compra; CTA directo al carrito; comisión X%…"</p>';
+    }
+    html += '<div class="fgrid" style="grid-template-columns:1fr 2fr auto;align-items:end">' +
+      '<div class="field"><label>Nombre del módulo</label><input id="modNom" placeholder="p. ej. TikTok Shop · Q3 2026"></div>' +
+      '<div class="field"><label>Reglas nuevas</label><input id="modReg" placeholder="qué cambia, qué se prioriza, qué se prohíbe…"></div>' +
+      '<div class="field"><button class="btn pri" id="bMod">Agregar módulo</button></div></div></div></div>';
+
+    html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Notas internas de la agencia</h3><span class="hint">criterios propios que la IA debe respetar siempre</span></div><div class="card-b">' +
+      '<div class="field"><textarea id="kbNotas" style="min-height:90px" placeholder="p. ej. Nunca proponer sorteos; el tono de la agencia es directo y sin emojis…">' + UI.esc(Store.data.kbNotes || '') + '</textarea></div>' +
+      '<button class="btn" id="bNotas">Guardar notas</button></div></div>';
+
+    html += '<div class="card" style="margin-bottom:18px"><div class="card-h"><h3>Base de conocimiento activa</h3><span class="hint">extractos del documento oficial que usa la IA</span></div><div class="card-b">' +
+      Object.keys(KB.sec).map(k => '<details class="acc"><summary style="font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.05em">' + k + '<span class="car">▶</span></summary><div class="acc-b"><div class="script">' + UI.esc(KB.sec[k]) + '</div></div></details>').join('') +
+      '</div></div>';
+
+    html += '<div class="card"><div class="card-h"><h3>Datos</h3></div><div class="card-b" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+      '<button class="btn" id="bExp">Exportar respaldo (JSON)</button>' +
+      '<label class="btn" style="position:relative;overflow:hidden">Importar respaldo<input type="file" id="bImp" accept=".json" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>' +
+      '<span class="login-hint">' + (Store.persistente ? 'Persistencia activa: tus datos se guardan automáticamente en este espacio.' : 'Este entorno no tiene almacenamiento persistente: exporta tu respaldo al terminar.') + '</span></div></div>';
+
+    el.innerHTML = html;
+    document.getElementById('bMod').onclick = () => {
+      const n = document.getElementById('modNom').value.trim(), r = document.getElementById('modReg').value.trim();
+      if (!n || !r){ UI.toast('Completa nombre y reglas'); return; }
+      Store.data.modules.push({ id: Store.uid(), nombre:n, reglas:r, fecha: new Date().toISOString().slice(0,10), activo:true });
+      Store.save(); App.refresh(); UI.toast('Módulo agregado a la base de conocimiento');
+    };
+    document.getElementById('bNotas').onclick = () => {
+      Store.data.kbNotes = document.getElementById('kbNotas').value; Store.save(); UI.toast('Notas guardadas');
+    };
+    document.getElementById('bExp').onclick = () => Store.exportar();
+    document.getElementById('bImp').onchange = e => { if (e.target.files[0]) Store.importar(e.target.files[0]); };
+    el.querySelectorAll('[data-tog]').forEach(b => b.onclick = () => {
+      const m = Store.data.modules.find(x => x.id === b.dataset.tog);
+      m.activo = m.activo === false ? true : false; Store.save(); App.refresh();
+    });
+    el.querySelectorAll('[data-delmod]').forEach(b => b.onclick = () => {
+      Store.data.modules = Store.data.modules.filter(x => x.id !== b.dataset.delmod); Store.save(); App.refresh();
+    });
+  }
+};
+
+/* ════════════════════════════════════════════════════════════════
+   MÓDULO ROUTER — js/app.js · Navegación, topbar y arranque
+   ════════════════════════════════════════════════════════════════ */
+const App = {
+  rutas: [
+    { id:'cli', icon:'M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm-5.5 6a5.5 5.5 0 0 1 11 0z', s: () => S_Clientes, grupo:'Cliente' },
+    { id:'dx',  icon:'M2 8h3l2-5 3 10 2-5h2', s: () => S_Dx },
+    { id:'est', icon:'M2 13h3V6H2zm5 0h3V2H7zm5 0h3V9h-3z', s: () => S_Estrategia, grupo:'Sistema' },
+    { id:'con', icon:'M3 2h10v9l-3 3H3zM10 14v-3h3', s: () => S_Contenido },
+    { id:'cal', icon:'M3 3h10v10H3zM3 6h10M6 2v2M10 2v2', s: () => S_Cal },
+    { id:'ban', icon:'M8 2l1.8 3.9L14 6.5l-3 3 .8 4.3L8 11.7l-3.8 2.1L5 9.5l-3-3 4.2-.6z', s: () => S_Banco, grupo:'Operación' },
+    { id:'ads', icon:'M2 9l9-6v10zM11 6h3v2h-3M4 13l1 2', s: () => S_Ads },
+    { id:'aut', icon:'M9 1L3 9h4l-1 6 6-8H8z', s: () => S_Autos },
+    { id:'dash',icon:'M8 8V2a6 6 0 1 1-6 6h6z M10 1a5 5 0 0 1 5 5h-5z', s: () => S_Dash },
+    { id:'kb',  icon:'M8 5a2.5 2.5 0 1 1 0 6a2.5 2.5 0 0 1 0-6zM8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M13 3l-1.5 1.5M4.5 11.5L3 13', s: () => S_Metodo, grupo:'Sistema' }
+  ],
+  labels: { cli:'Nuevo cliente', dx:'Diagnóstico', est:'Estrategia 6 meses', con:'Contenido', cal:'Calendario', ban:'Banco de Ganadores', ads:'Publicidad', aut:'Automatizaciones', dash:'Dashboard', kb:'Método' },
+  actual: 'cli',
+  go(id){ this.actual = id; this.refresh(); },
+  sinCliente(){
+    return '<div class="card"><div class="empty"><div class="art">3·2·1</div><h4>Primero crea un cliente</h4><p>Toda pantalla trabaja sobre la ficha del cliente activo.</p><button class="btn pri" onclick="App.go(\'cli\')">Ir a Nuevo cliente</button></div></div>';
+  },
+  pintaNav(){
+    const grupos = { Cliente:['cli','dx','est'], Operación:['con','cal','ban','ads','aut','dash'], Sistema:['kb'] };
+    let h = '';
+    Object.keys(grupos).forEach(g => {
+      h += '<div class="nav-label">' + g + '</div>';
+      grupos[g].forEach(id => {
+        const r = this.rutas.find(x => x.id === id);
+        h += '<button data-go="' + id + '" class="' + (this.actual === id ? 'on' : '') + '">' +
+          '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="' + r.icon + '"/></svg>' +
+          this.labels[id] + (this.actual === id ? '<span class="dot"></span>' : '') + '</button>';
+      });
+    });
+    document.getElementById('nav').innerHTML = h;
+    document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => this.go(b.dataset.go));
+  },
+  pintaRail(){
+    const c = Store.client();
+    const rail = document.getElementById('rail');
+    if (!c){ rail.innerHTML = '<h4>Programa 3·2·1</h4><p style="font-size:11px;color:#5A6272">Sin cliente activo</p>'; return; }
+    const et = Store.etapaDe(c.mes);
+    const def = [ [1,'Reconocimiento',3,[1,2,3]], [2,'Consideración',2,[4,5]], [3,'Conversión',1,[6]] ];
+    rail.innerHTML = '<h4>Programa 3·2·1</h4>' + def.map(d => {
+      const meses = d[3];
+      const done = meses.filter(m => m < c.mes).length + (meses.includes(c.mes) ? .5 : 0);
+      const pct = Math.min(100, done / meses.length * 100);
+      return '<div class="rail-row' + (et === d[0] ? ' live' : '') + '"><span class="num">' + d[2] + '</span><span class="tag">' + d[1] + '</span><div class="bar"><i style="width:' + (et > d[0] ? 100 : (et === d[0] ? pct : 0)) + '%"></i></div></div>';
+    }).join('') + '<div class="rail-mes">Mes ' + c.mes + ' de 6 · Etapa ' + et + '</div>';
+  },
+  paintChrome(){
+    const sel = document.getElementById('clientSel');
+    sel.innerHTML = Store.data.clients.length
+      ? Store.data.clients.map(c => '<option value="' + c.id + '"' + (c.id === Store.data.activeId ? ' selected' : '') + '>' + UI.esc(c.intake.empresa || 'Cliente sin nombre') + '</option>').join('')
+      : '<option>— sin clientes —</option>';
+    const c = Store.client();
+    const ms = document.getElementById('mesStep');
+    if (c){
+      ms.style.display = 'flex';
+      document.getElementById('mesLbl').textContent = 'Mes ' + c.mes + ' · Etapa ' + Store.etapaDe(c.mes);
+    } else ms.style.display = 'none';
+    this.pintaRail();
+  },
+  refresh(){
+    this.pintaNav(); this.paintChrome();
+    const r = this.rutas.find(x => x.id === this.actual);
+    document.getElementById('crumb').textContent = r.s().title;
+    r.s().render(document.getElementById('view'));
+    document.querySelector('.view').scrollTop = 0;
+  },
+  async init(){
+    await Store.load();
+    document.getElementById('clientSel').onchange = e => {
+      const c = Store.data.clients.find(x => x.id === e.target.value);
+      if (c){ Store.data.activeId = c.id; Store.save(); this.refresh(); }
+    };
+    document.getElementById('mesDown').onclick = () => { const c = Store.client(); if (c && c.mes > 1){ c.mes--; Store.save(); this.refresh(); } };
+    document.getElementById('mesUp').onclick = () => { const c = Store.client(); if (c && c.mes < 6){ c.mes++; Store.save(); this.refresh(); } };
+    this.refresh();
+  }
+};
+window.App = App;
+App.init();
+</script>
+</body>
+</html>
