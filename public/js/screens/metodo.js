@@ -44,7 +44,7 @@ const S_Metodo = {
     document.getElementById('bMod').onclick = () => {
       const n = document.getElementById('modNom').value.trim(), r = document.getElementById('modReg').value.trim();
       if (!n || !r){ UI.toast('Completa nombre y reglas'); return; }
-      Store.data.modules.push({ id: Store.uid(), nombre:n, reglas:r, fecha: new Date().toISOString().slice(0,10), activo:true });
+      Store.data.modules.push({ id: Store.uid(), nombre:n, reglas:r, fecha: UI.hoyISO(), activo:true });
       Store.save(); App.refresh(); UI.toast('Módulo agregado a la base de conocimiento');
     };
     document.getElementById('bNotas').onclick = () => {

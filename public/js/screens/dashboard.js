@@ -106,7 +106,7 @@ const S_Dash = {
     return A;
   },
   formulario(c){
-    const semDef = new Date().toISOString().slice(0,10);
+    const semDef = UI.hoyISO(); // G5: fecha local, no UTC
     const num = (id,l) => '<div class="field"><label>' + l + '</label><input type="number" id="' + id + '" min="0" step="any" value="0"></div>';
     UI.modal('Registrar semana',
       '<div class="field"><label>Semana (fecha del viernes)</label><input type="date" id="mSem" value="' + semDef + '"></div><div class="fgrid">' +
@@ -117,11 +117,17 @@ const S_Dash = {
       () => {
         document.getElementById('mOk').onclick = () => {
           const g = id => +document.getElementById(id).value || 0;
-          c.metricas.push({ semana: document.getElementById('mSem').value,
-            alcance:g('mAl'), retencion:g('mRet'), interaccion:g('mInt'), visitas:g('mVis'),
-            dms:g('mDm'), conversiones:g('mConv'), seguidores:g('mSeg'), gasto:g('mGas'), ingresos:g('mIng') });
+          const semana = document.getElementById('mSem').value;
+          // M5: la fecha es obligatoria (antes se podían guardar semanas sin clave)
+          if (!semana){ UI.toast('Indica la fecha de la semana'); return; }
+          const fila = { semana,
+            alcance:g('mAl'), retencion:Math.min(100, g('mRet')), interaccion:g('mInt'), visitas:g('mVis'),
+            dms:g('mDm'), conversiones:g('mConv'), seguidores:g('mSeg'), gasto:g('mGas'), ingresos:g('mIng') };
+          // M5: re-registrar la misma semana la actualiza en vez de duplicarla
+          const i = c.metricas.findIndex(m => m.semana === semana);
+          if (i >= 0) c.metricas[i] = fila; else c.metricas.push(fila);
           c.metricas.sort((a,b) => a.semana < b.semana ? -1 : 1);
-          Store.save(); UI.closeModal(); App.refresh(); UI.toast('Semana registrada');
+          Store.save(); UI.closeModal(); App.refresh(); UI.toast(i >= 0 ? 'Semana actualizada' : 'Semana registrada');
         };
       });
   },

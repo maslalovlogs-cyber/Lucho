@@ -86,7 +86,7 @@ const S_Contenido = {
   },
   programar(c, id){
     const it = c.contenidos.find(x => x.id === id); if (!it) return;
-    const hoy = new Date().toISOString().slice(0,10);
+    const hoy = UI.hoyISO(); // G5: fecha local, no UTC
     UI.modal('Programar pieza', '<div class="field"><label>Fecha de publicación</label><input type="date" id="pFecha" value="' + hoy + '"></div>' +
       '<button class="btn pri" id="pOk" style="width:100%">Agregar al calendario</button>', () => {
       document.getElementById('pOk').onclick = () => {

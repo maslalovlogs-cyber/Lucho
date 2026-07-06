@@ -11,7 +11,32 @@ const UI = {
     document.getElementById('toasts').appendChild(d);
     setTimeout(() => d.remove(), 3200);
   },
-  saveDot(t){ document.getElementById('saveDot').textContent = t || ''; },
+  _saveT: null,
+  /* M8: el indicador se limpia solo pasados unos segundos (antes
+     "Guardado ✓" quedaba pegado para siempre). */
+  saveDot(t, autoLimpiar){
+    document.getElementById('saveDot').textContent = t || '';
+    clearTimeout(this._saveT);
+    if (t && autoLimpiar) this._saveT = setTimeout(() => { document.getElementById('saveDot').textContent = ''; }, 2500);
+  },
+  /* G5: fecha local YYYY-MM-DD (el original usaba toISOString → UTC,
+     que de noche en LATAM devuelve el día siguiente). */
+  hoyISO(){
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  },
+  /* G6/G3: confirmación destructiva con modal propio (confirm() nativo
+     retorna false silenciosamente dentro de iframes sandboxeados). */
+  confirmar(titulo, mensajeHTML, textoBoton, onOk){
+    UI.modal(titulo, '<div style="font-size:13px;margin-bottom:14px">' + mensajeHTML + '</div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+      '<button class="btn" id="cfNo">Cancelar</button>' +
+      '<button class="btn danger" id="cfSi" style="border-color:var(--red)">' + UI.esc(textoBoton) + '</button></div>',
+      () => {
+        document.getElementById('cfNo').onclick = UI.closeModal;
+        document.getElementById('cfSi').onclick = () => { UI.closeModal(); onOk(); };
+      });
+  },
   modal(title, bodyHTML, onMount){
     const host = document.getElementById('modalHost');
     host.innerHTML = '<div class="modal-bg" id="mBg"><div class="modal"><div class="card-h"><h3>' + this.esc(title) +
@@ -67,7 +92,7 @@ function F(id, label, type, opts){
   if (type === 'ta') inner = '<textarea data-f="' + id + '" placeholder="' + UI.esc(opts.ph||'') + '">' + UI.esc(v) + '</textarea>';
   else if (type === 'sel') inner = '<select data-f="' + id + '">' + opts.opciones.map(o => '<option' + (v===o?' selected':'') + '>' + UI.esc(o) + '</option>').join('') + '</select>';
   else inner = '<input data-f="' + id + '" type="' + (type||'text') + '" value="' + UI.esc(v) + '" placeholder="' + UI.esc(opts.ph||'') + '">';
-  return '<div class="field"><label>' + label + (opts.hint ? '<small>' + opts.hint + '</small>' : '') + '</label>' + inner + '</div>';
+  return '<div class="field"><label>' + UI.esc(label) + (opts.hint ? '<small>' + UI.esc(opts.hint) + '</small>' : '') + '</label>' + inner + '</div>';
 }
 
 

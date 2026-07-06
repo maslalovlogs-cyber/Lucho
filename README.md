@@ -39,15 +39,18 @@ AUDITORIA.md               Auditoría técnica completa (Fase 1)
 - **IA:** el navegador nunca habla con Anthropic directamente; llama a `/api/ai` y el servidor hace la petición con el SDK oficial (modelo `claude-sonnet-4-6`).
 - **Actualizar el método sin tocar código:** pantalla **Método** → módulos de actualización y notas de la agencia (se inyectan en cada llamada de IA).
 
-## Prueba de humo
+## Pruebas
 
 ```bash
+npm test                              # unitarias del ICG (M1–M4 del método, sin dependencias)
+
+# Prueba de humo end-to-end (requiere Chromium):
 npm i --no-save playwright
 PORT=3113 node server.js &            # el test espera el puerto 3113
 CHROMIUM_PATH=/ruta/a/chrome node test/smoke.mjs
 ```
 
-Verifica: render de las 10 pantallas, creación de cliente, **persistencia tras recargar**, navegación y mensajes de error de IA legibles.
+La prueba de humo verifica: render de las 10 pantallas, creación de cliente, **persistencia tras recargar** (IndexedDB), pantalla activa tras recargar (hash routing), modal de eliminación y mensajes de error de IA legibles.
 
 ## Estado del proyecto (plan por fases)
 
@@ -55,7 +58,7 @@ Verifica: render de las 10 pantallas, creación de cliente, **persistencia tras 
 |---|---|
 | 1. Auditoría | ✅ `AUDITORIA.md` |
 | 2. Arquitectura (separación en módulos, mini-backend, IndexedDB) | ✅ este commit |
-| 3. Corrección de errores (G3, G5, G6, M1–M8 de la auditoría) | pendiente |
+| 3. Corrección de errores (G3–G6, M1–M8 de la auditoría) | ✅ |
 | 4. Refactorización (duplicaciones, código muerto) | pendiente |
 | 5. Optimización IA (structured outputs, streaming, prompt caching) | pendiente |
 | 6–10. UX/UI · Rendimiento · Seguridad · Documentación · Pruebas | pendientes |

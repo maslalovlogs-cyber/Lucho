@@ -47,6 +47,7 @@ const S_Ads = {
   },
   async generar(c){
     const prog = document.getElementById('adProg');
+    const btn = document.getElementById('bCamp'); btn.disabled = true; // G4: sin duplicados por doble clic
     prog.innerHTML = UI.thinking('Diseñando la campaña del mes ' + c.mes + ' según etapa y nivel de presupuesto…');
     try{
       const ganadores = c.banco.filter(b => b.icg >= 1.2).map(b => b.titulo + ' (ICG ' + b.icg.toFixed(2) + ')');
@@ -56,7 +57,7 @@ const S_Ads = {
         '\nDevuelve JSON: {"nombre":str nombre de la campaña del mes,"objetivo":str máx 15 palabras,"presupuesto":str cómo se reparte el monto del mes,"campanas":[2-4 objetos {"nombre":str,"objetivoPlataforma":str p.ej. interacción/video views/conversiones,"audiencia":str específica,"pct":str "40%","creativo":str qué pieza o derivado,"kpi":str meta numérica}],"remarketing":str máx 30 palabras públicos por temperatura y secuencia,"reglas":str máx 25 palabras (frecuencia, rotación, cuándo apagar)}');
       res.id = Store.uid(); res.mes = c.mes;
       c.campanas.push(res); Store.save(); App.refresh(); UI.toast('Campaña del mes diseñada');
-    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
   }
 };
 

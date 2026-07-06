@@ -29,7 +29,15 @@ const App = {
   ],
   labels: { cli:'Nuevo cliente', dx:'Diagnóstico', est:'Estrategia 6 meses', con:'Contenido', cal:'Calendario', ban:'Banco de Ganadores', ads:'Publicidad', aut:'Automatizaciones', dash:'Dashboard', kb:'Método' },
   actual: 'cli',
-  go(id){ this.actual = id; this.refresh(); },
+  /* M8: la pantalla activa vive en el hash de la URL (#dash, #cal…),
+     así sobrevive a recargas y funcionan atrás/adelante del navegador.
+     Antes el routing era solo memoria y toda recarga volvía a Clientes. */
+  go(id){
+    if (!this.rutas.some(r => r.id === id)) id = 'cli';
+    this.actual = id;
+    if (location.hash !== '#' + id) location.hash = id; // el handler ignora el eco (actual ya coincide)
+    this.refresh(); // render síncrono: sin esperar al evento hashchange
+  },
   sinCliente(){
     return '<div class="card"><div class="empty"><div class="art">3·2·1</div><h4>Primero crea un cliente</h4><p>Toda pantalla trabaja sobre la ficha del cliente activo.</p><button class="btn pri" onclick="App.go(\'cli\')">Ir a Nuevo cliente</button></div></div>';
   },
@@ -81,6 +89,11 @@ const App = {
     r.s().render(document.getElementById('view'));
     document.querySelector('.view').scrollTop = 0;
   },
+  /** M8: sincroniza App.actual con el hash actual de la URL. */
+  leeHash(){
+    const id = (location.hash || '').replace('#', '');
+    this.actual = this.rutas.some(r => r.id === id) ? id : 'cli';
+  },
   async init(){
     await Store.load();
     document.getElementById('clientSel').onchange = e => {
@@ -89,6 +102,14 @@ const App = {
     };
     document.getElementById('mesDown').onclick = () => { const c = Store.client(); if (c && c.mes > 1){ c.mes--; Store.save(); this.refresh(); } };
     document.getElementById('mesUp').onclick = () => { const c = Store.client(); if (c && c.mes < 6){ c.mes++; Store.save(); this.refresh(); } };
+    // Solo reacciona a cambios reales (atrás/adelante, edición manual del hash);
+    // los clics de navegación ya renderizaron en go().
+    window.addEventListener('hashchange', () => {
+      const previa = this.actual;
+      this.leeHash();
+      if (this.actual !== previa) this.refresh();
+    });
+    this.leeHash();
     this.refresh();
   }
 };

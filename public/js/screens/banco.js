@@ -25,7 +25,7 @@ const S_Banco = {
       '<div class="card kpi"><div class="lbl">Piezas registradas</div><div class="val">' + c.banco.length + '</div></div>' +
       '<div class="card kpi"><div class="lbl">ICG promedio</div><div class="val" style="color:' + (prom >= 1 ? 'var(--green)' : 'var(--text)') + '">' + (prom ? prom.toFixed(2) : '—') + '</div></div>' +
       '<div class="card kpi"><div class="lbl">Ganadoras (≥ 1.2)</div><div class="val">' + ganadores.length + '</div></div>' +
-      '<div class="card kpi"><div class="lbl">Estructuras a certificar</div><div class="val">' + this.estructuras(c).filter(e => e.n >= 3 && e.ok).length + '</div><div class="sub">Regla de 3: tres piezas ≥ 1.3</div></div></div>';
+      '<div class="card kpi"><div class="lbl">Estructuras certificadas</div><div class="val">' + ICG.estructuras(c.banco).filter(e => e.certificada).length + '</div><div class="sub">Regla de 3: tres piezas ≥ 1.3</div></div></div>';
 
     if (c.banco.length < 5) html += '<div class="note">Con menos de 5 piezas registradas las medianas aún son inestables; el método pide un mes de datos antes de podar nada.</div>';
     html += '<div id="bProg"></div>';
@@ -45,35 +45,20 @@ const S_Banco = {
             '<button class="btn sm ghost danger" data-delb="' + b.id + '">✕</button></td></tr>';
         }).join('') + '</table></div></div>';
 
-      const est = this.estructuras(c).filter(e => e.n >= 2);
+      const est = ICG.estructuras(c.banco).filter(e => e.n >= 2);
       if (est.length){
         html += '<div class="card" style="margin-top:16px"><div class="card-h"><h3>Estructuras (Regla de 3)</h3><span class="hint">una estructura se certifica con 3 piezas ≥ 1.3</span></div><div class="card-b" style="padding:0"><table class="tb"><tr><th>Estructura</th><th>Piezas</th><th>ICG medio</th><th>Estado</th></tr>' +
           est.map(e => '<tr><td><b>' + UI.esc(e.k) + '</b></td><td class="num">' + e.n + '</td><td class="num">' + e.prom.toFixed(2) + '</td><td>' +
-            (e.n >= 3 && e.ok ? '<span class="chip gold">Certificada ✓</span>' : (e.ok ? '<span class="chip green">Promete · faltan ' + (3 - e.n) + ' réplicas</span>' : '<span class="chip gray">En observación</span>')) + '</td></tr>').join('') + '</table></div></div>';
+            (e.certificada ? '<span class="chip gold">Certificada ✓</span>' : (e.promete ? '<span class="chip green">Promete · faltan ' + (3 - e.cumplen) + ' pieza(s) ≥ 1.3</span>' : '<span class="chip gray">En observación</span>')) + '</td></tr>').join('') + '</table></div></div>';
       }
     }
     el.innerHTML = html;
     document.getElementById('bReg').onclick = () => this.formulario(c);
     el.querySelectorAll('[data-delb]').forEach(b => b.onclick = () => {
       c.banco = c.banco.filter(x => x.id !== b.dataset.delb);
-      this.recalcular(c); Store.save(); App.refresh();
+      Store.save(); App.refresh();
     });
     el.querySelectorAll('[data-rep]').forEach(b => b.onclick = () => this.replicar(c, b.dataset.rep));
-  },
-  estructuras(c){
-    const map = {};
-    c.banco.forEach(b => {
-      const k = b.estructura || (b.formato + ' · ' + (b.pilar || ''));
-      (map[k] = map[k] || []).push(b.icg);
-    });
-    return Object.keys(map).map(k => {
-      const v = map[k];
-      return { k, n: v.length, prom: v.reduce((s,x) => s+x, 0) / v.length, ok: v.filter(x => x >= 1.3).length >= Math.min(3, v.length) && v.every(x => x >= 1.15) };
-    }).sort((a,b) => b.prom - a.prom);
-  },
-  recalcular(c){
-    const modoVenta = Store.etapaDe(c.mes) === 3;
-    c.banco.forEach(b => { b.icg = ICG.calc(c.banco, b, modoVenta && b.metricas.conversiones > 0); });
   },
   formulario(c){
     const publicadas = c.calendario.filter(k => k.publicado && !c.banco.some(b => b.calId === k.id));
@@ -99,13 +84,20 @@ const S_Banco = {
         };
         document.getElementById('rOk').onclick = () => {
           const g = id => +document.getElementById(id).value || 0;
-          const pieza = { id: Store.uid(), calId: sel ? sel.value : '', fecha: new Date().toISOString().slice(0,10),
+          const pieza = { id: Store.uid(), calId: sel ? sel.value : '', fecha: UI.hoyISO(),
             titulo: document.getElementById('rTit').value || 'Pieza sin título',
             formato: document.getElementById('rFmt').value, pilar: document.getElementById('rPil').value,
             estructura: document.getElementById('rEst').value,
-            metricas: { alcance:g('rAl'), retencion:g('rRet'), compartidos:g('rCom'), guardados:g('rGua'), visitas:g('rVis'), clics:g('rCli'), dms:g('rDm'), conversiones:g('rConv') } };
+            metricas: { alcance:g('rAl'), retencion:Math.min(100, g('rRet')), compartidos:g('rCom'), guardados:g('rGua'), visitas:g('rVis'), clics:g('rCli'), dms:g('rDm'), conversiones:g('rConv') } };
+          /* M1: el ICG se calcula UNA vez, contra las piezas registradas
+             ANTES (c.banco todavía no incluye esta) y queda fijo.
+             M2: en Etapa 3 el modo venta aplica a TODAS las piezas del
+             mes, tengan o no conversiones (antes se mezclaban fórmulas). */
+          const modoVenta = Store.etapaDe(c.mes) === 3;
+          pieza.icgModo = modoVenta ? 'venta' : 'organico';
+          pieza.icg = ICG.calc(c.banco, pieza, modoVenta);
           c.banco.push(pieza);
-          this.recalcular(c); Store.save(); UI.closeModal(); App.refresh();
+          Store.save(); UI.closeModal(); App.refresh();
           const cl = ICG.clase(pieza.icg);
           UI.toast('ICG ' + pieza.icg.toFixed(2) + ' · ' + cl.t);
         };
@@ -114,6 +106,8 @@ const S_Banco = {
   async replicar(c, id){
     const b = c.banco.find(x => x.id === id); if (!b) return;
     const prog = document.getElementById('bProg');
+    // G4: evitar réplicas duplicadas por doble clic
+    document.querySelectorAll('[data-rep]').forEach(x => { x.disabled = true; });
     const nuevas = [];
     try{
       for (let i = 1; i <= 3; i++){
@@ -130,6 +124,7 @@ const S_Banco = {
       prog.innerHTML = ''; UI.toast('3 réplicas listas en Contenido'); App.go('con');
     }catch(e){
       prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + (nuevas.length ? ' · Se guardaron ' + nuevas.length + ' réplica(s) en Contenido.' : '') + '</div>';
+      document.querySelectorAll('[data-rep]').forEach(x => { x.disabled = false; });
     }
   }
 };

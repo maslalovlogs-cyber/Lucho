@@ -56,7 +56,9 @@ const S_Clientes = {
     el.innerHTML = html;
 
     el.querySelectorAll('[data-f]').forEach(inp => {
-      inp.addEventListener('input', () => { c.intake[inp.dataset.f] = inp.value; });
+      // M7: guardar mientras se escribe (Store.save ya trae debounce de 500 ms);
+      // antes solo se guardaba al salir del campo y lo tecleado podía perderse.
+      inp.addEventListener('input', () => { c.intake[inp.dataset.f] = inp.value; Store.save(); });
       inp.addEventListener('change', () => { c.intake[inp.dataset.f] = inp.value; Store.save(); App.paintChrome(); });
     });
     el.querySelectorAll('select[data-f]').forEach(s => { if (c.intake[s.dataset.f] == null) c.intake[s.dataset.f] = s.value; });
@@ -65,10 +67,16 @@ const S_Clientes = {
     document.getElementById('bNuevo').onclick = () => { const n = Store.nuevoCliente(); Store.data.clients.push(n); Store.data.activeId = n.id; Store.save(); App.refresh(); };
     const del = document.getElementById('bBorrar');
     if (del) del.onclick = () => {
-      if (!confirm('¿Eliminar este cliente y todos sus datos?')) return;
-      Store.data.clients = Store.data.clients.filter(x => x.id !== c.id);
-      Store.data.activeId = Store.data.clients.length ? Store.data.clients[0].id : null;
-      Store.save(); App.refresh();
+      const nombre = c.intake.empresa || 'este cliente';
+      UI.confirmar('Eliminar cliente',
+        'Vas a eliminar <b>' + UI.esc(nombre) + '</b> con todo su historial: ' +
+        c.contenidos.length + ' pieza(s) de contenido, ' + c.banco.length + ' registro(s) del Banco, ' +
+        c.metricas.length + ' semana(s) de métricas y su estrategia. Esta acción no se puede deshacer.',
+        'Eliminar definitivamente', () => {
+          Store.data.clients = Store.data.clients.filter(x => x.id !== c.id);
+          Store.data.activeId = Store.data.clients.length ? Store.data.clients[0].id : null;
+          Store.save(); App.refresh(); UI.toast('Cliente eliminado');
+        });
     };
   }
 };

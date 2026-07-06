@@ -117,10 +117,11 @@ const S_Cal = {
   async planSemana(c){
     if (!c.contenidos.length){ UI.toast('Genera contenido primero: el calendario programa piezas de la biblioteca'); return; }
     const prog = document.getElementById('calProg');
+    const btn = document.getElementById('bPlan'); btn.disabled = true; // G4: sin duplicados por doble clic
     prog.innerHTML = UI.thinking('Asignando la semana con la plantilla semanal del método…');
     try{
       const pend = c.contenidos.filter(it => !c.calendario.some(k => k.contenidoId === it.id)).slice(0, 14);
-      if (!pend.length){ prog.innerHTML = ''; UI.toast('Todas las piezas de la biblioteca ya están programadas'); return; }
+      if (!pend.length){ prog.innerHTML = ''; btn.disabled = false; UI.toast('Todas las piezas de la biblioteca ya están programadas'); return; }
       const d0 = new Date(); d0.setDate(d0.getDate() + ((8 - d0.getDay()) % 7 || 7)); // próximo lunes
       const res = await AI.json(
         AI.system(['operativo','principios'], 'Programas la semana siguiendo el calendario semanal tipo del método (lunes educativo, miércoles identidad, jueves serie/carrusel, viernes storytelling/prueba social, sábado comunidad).'),
@@ -131,8 +132,8 @@ const S_Cal = {
         const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + (+a.dia || 0));
         c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: this.iso(d), publicado:false });
       });
-      Store.save(); this.cursor = d0; prog.innerHTML = ''; this.pinta(c); UI.toast('Semana planificada con la plantilla del método');
-    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+      Store.save(); this.cursor = d0; prog.innerHTML = ''; btn.disabled = false; this.pinta(c); UI.toast('Semana planificada con la plantilla del método');
+    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
   }
 };
 

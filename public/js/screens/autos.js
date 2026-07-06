@@ -42,6 +42,7 @@ const S_Autos = {
   },
   async generar(c){
     const prog = document.getElementById('aProg');
+    const btn = document.getElementById('bAuto'); btn.disabled = true; // G4: sin duplicados por doble clic
     prog.innerHTML = UI.thinking('Escribiendo la secuencia con los guiones del método…');
     const canal = document.getElementById('aCanal').value, obj = document.getElementById('aObj').value, kw = document.getElementById('aKw').value;
     try{
@@ -51,7 +52,7 @@ const S_Autos = {
         '\nDevuelve JSON: {"nombre":str,"canal":str corto,"pasos":[4-6 objetos {"paso":str qué ocurre máx 10 palabras,"mensaje":str texto LITERAL del mensaje con el tono del negocio (usa [Nombre] como variable),"nota":str opcional máx 12 palabras}],"cadencia":str máx 30 palabras qué se envía a las 24h, 72h y día 7}');
       res.id = Store.uid();
       c.autos.push(res); Store.save(); App.refresh(); UI.toast('Secuencia lista');
-    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
   }
 };
 

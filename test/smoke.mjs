@@ -33,11 +33,20 @@ ok((await page.locator('#view h2').first().textContent()).includes('Método 3·2
 const hint = await page.locator('.login-hint').textContent();
 ok(hint.includes('Persistencia activa'), 'Store reporta persistencia activa (IndexedDB)');
 
-// 4. RECARGA — la prueba clave del bloqueante B2
+// 4. RECARGA — pruebas clave: B2 (datos persisten) y M8 (pantalla persiste)
 await page.reload({ waitUntil: 'networkidle' });
 await page.waitForTimeout(300);
 const sel = await page.locator('#clientSel option').first().textContent();
 ok(sel === 'Café Prueba', 'el cliente sobrevive a la recarga (IndexedDB) → "' + sel + '"');
+ok((await page.locator('#crumb').textContent()) === 'Método y actualizaciones', 'la pantalla activa sobrevive a la recarga (hash routing M8)');
+
+// 4b. G6 — eliminar cliente usa modal propio (no confirm() nativo)
+await page.click('[data-go="cli"]');
+await page.click('#bBorrar');
+await page.waitForSelector('#cfSi');
+ok((await page.locator('.modal h3').textContent()) === 'Eliminar cliente', 'modal de confirmación propio al eliminar');
+await page.click('#cfNo');   // cancelar: el cliente sigue
+ok((await page.locator('#clientSel option').first().textContent()) === 'Café Prueba', 'cancelar la eliminación conserva el cliente');
 
 // 5. El botón de IA muestra error legible (backend sin key → 503 con mensaje claro)
 await page.click('[data-go="dx"]');
