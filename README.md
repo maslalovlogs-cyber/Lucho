@@ -4,7 +4,7 @@ Aplicación de inteligencia estratégica para agencias, basada en el **Método 3
 
 ## Cómo ejecutarla
 
-Requisitos: Node.js 20 o superior.
+Requisitos: Node.js 22 o superior (el arranque usa `--env-file-if-exists`, disponible desde 22.9).
 
 ```bash
 npm install
@@ -27,6 +27,8 @@ public/
    ├─ store.js             Estado + persistencia en IndexedDB (export/import JSON)
    ├─ ai.js                Cliente del backend de IA (/api/ai)
    ├─ icg.js               Índice de Contenido Ganador (medianas móviles, pesos, clases)
+   ├─ presupuesto.js       Reglas de presupuesto del método (distribución y niveles A/B/C)
+   ├─ schemas.js           JSON Schemas de cada generación de IA (structured outputs)
    ├─ ui.js                Helpers de interfaz (esc, toast, modal, meter, svgLine, F)
    ├─ app.js               Router, navegación, rail 3·2·1 y arranque
    └─ screens/             Las 10 pantallas (una por archivo)

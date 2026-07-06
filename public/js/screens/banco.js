@@ -42,7 +42,7 @@ const S_Banco = {
             '<td><span class="icg-hero" style="font-size:17px">' + b.icg.toFixed(2) + '</span></td>' +
             '<td><span class="chip ' + cl.c + '">' + cl.t + '</span></td>' +
             '<td style="font-size:12px;color:var(--muted)">' + cl.accion + '</td>' +
-            '<td style="white-space:nowrap">' + (b.icg >= 1.2 ? '<button class="btn sm" data-rep="' + b.id + '">Replicar ×3</button> ' : '') +
+            '<td style="white-space:nowrap">' + (b.icg >= 1.2 ? '<button class="btn sm" data-rep="' + b.id + '"' + (this._gen ? ' disabled' : '') + '>Replicar ×3</button> ' : '') +
             '<button class="btn sm ghost danger" data-delb="' + b.id + '">✕</button></td></tr>';
         }).join('') + '</table></div></div>';
 
@@ -111,14 +111,15 @@ const S_Banco = {
   async replicar(c, id){
     const b = c.banco.find(x => x.id === id); if (!b) return;
     const prog = document.getElementById('bProg');
-    // G4: evitar réplicas duplicadas por doble clic
+    // G4: evitar réplicas duplicadas por doble clic (el flag sobrevive a re-renders)
+    this._gen = true;
     document.querySelectorAll('[data-rep]').forEach(x => { x.disabled = true; });
     try{
       /* Fase 5 (M6): las 3 réplicas de la Regla de 3 salen en UNA llamada
          con salida estructurada (antes: 3 llamadas en serie). */
       prog.innerHTML = UI.thinking('Regla de 3 · generando las 3 réplicas de la estructura ganadora…');
       const res = await AI.json(
-        AI.system(['principios','icg','formatos','algoritmos'], 'Aplicas la Regla de 3: produces TRES réplicas de una estructura ganadora, cada una con un tema distinto, manteniendo gancho y desarrollo.'),
+        AI.system(['principios','icg','formatos','algoritmos','prohibido'], 'Aplicas la Regla de 3: produces TRES réplicas de una estructura ganadora, cada una con un tema distinto, manteniendo gancho y desarrollo.'),
         AI.clienteCtx(c) + '\nEstructura ganadora: ' + JSON.stringify({ titulo:b.titulo, formato:b.formato, pilar:b.pilar, estructura:b.estructura, icg:b.icg }) +
         '\nNo repitas: ' + JSON.stringify(c.historial.slice(-30)) +
         '\nDevuelve JSON: {"piezas":[3 objetos]}. Cada objeto: {"titulo":str,"formato":str,"pilar":str,"plataforma":str,"etapa":str,"gancho":str,"guion":str 4-6 líneas con \\n,"cta":str,"objPsico":str,"objAlgoritmo":str,"duracion":str,"edicion":str,"plano":str,"miniatura":str,"hashtags":[3-5],"keyword":str,"musica":str,"icgEsperado":str}',
@@ -128,8 +129,10 @@ const S_Banco = {
         c.contenidos.push(it); c.historial.push(it.titulo);
       });
       Store.save();
+      this._gen = false;
       prog.innerHTML = ''; UI.toast((res.piezas || []).length + ' réplicas listas en Contenido'); App.go('con');
     }catch(e){
+      this._gen = false;
       prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>';
       document.querySelectorAll('[data-rep]').forEach(x => { x.disabled = false; });
     }

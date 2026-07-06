@@ -19,7 +19,7 @@ const S_Autos = {
       '<div class="field"><label for="aCanal">Canal</label><select id="aCanal"><option>ManyChat (DM Instagram)</option><option>WhatsApp Business</option><option>Email</option><option>CRM / seguimiento</option><option>Flujo completo (comentario → venta)</option></select></div>' +
       '<div class="field"><label for="aObj">Objetivo</label><select id="aObj"><option>Capturar y calificar leads</option><option>Agendar citas</option><option>Entregar lead magnet</option><option>Cerrar venta por DM</option><option>Recompra / fidelización</option><option>Recuperar carritos o DMs fríos</option></select></div>' +
       '<div class="field"><label for="aKw">Palabra clave</label><input id="aKw" placeholder="p. ej. PRECIO, GUÍA, AGENDA"></div>' +
-      '<div class="field"><button class="btn pri" id="bAuto">Generar secuencia</button></div></div><div id="aProg"></div></div></div>';
+      '<div class="field"><button class="btn pri" id="bAuto"' + (this._gen ? ' disabled' : '') + '>Generar secuencia</button></div></div><div id="aProg"></div></div></div>';
 
     if (!c.autos.length){
       html += '<div class="card"><div class="empty"><div class="art">⚡</div><h4>Sin secuencias creadas</h4><p>Genera flujos con mensajes literales listos para pegar en ManyChat, WhatsApp o tu herramienta de email.</p></div></div>';
@@ -49,16 +49,17 @@ const S_Autos = {
   async generar(c){
     const prog = document.getElementById('aProg');
     const btn = document.getElementById('bAuto'); btn.disabled = true; // G4: sin duplicados por doble clic
+    this._gen = true;
     prog.innerHTML = UI.thinking('Escribiendo la secuencia con los guiones del método…');
     const canal = document.getElementById('aCanal').value, obj = document.getElementById('aObj').value, kw = document.getElementById('aKw').value;
     try{
       const res = await AI.json(
-        AI.system(['etapa3','principios'], 'Diseñas automatizaciones de conversión con los guiones y reglas del método (speed-to-lead <5 min, 1 pregunta calificadora, cadencia 24-72-7, cierre asumido con 2 opciones).'),
+        AI.system(['etapa3','principios','operativo'], 'Diseñas automatizaciones de conversión con los guiones y reglas del método (speed-to-lead <5 min, 1 pregunta calificadora, cadencia 24-72-7, cierre asumido con 2 opciones).'),
         AI.clienteCtx(c) + '\nCanal: ' + canal + '. Objetivo: ' + obj + '. Palabra clave: ' + (kw || 'proponla tú') + '.' +
-        '\nDevuelve JSON: {"nombre":str,"canal":str corto,"pasos":[4-6 objetos {"paso":str qué ocurre máx 10 palabras,"mensaje":str texto LITERAL del mensaje con el tono del negocio (usa [Nombre] como variable),"nota":str opcional máx 12 palabras}],"cadencia":str máx 30 palabras qué se envía a las 24h, 72h y día 7}', SECUENCIA);
+        '\nDevuelve JSON: {"nombre":str,"canal":str corto,"pasos":[4-6 objetos {"paso":str qué ocurre máx 10 palabras,"mensaje":str texto LITERAL del mensaje con el tono del negocio (usa [Nombre] como variable),"nota":str máx 12 palabras ("" si no aplica)}],"cadencia":str máx 30 palabras qué se envía a las 24h, 72h y día 7}', SECUENCIA);
       res.id = Store.uid();
-      c.autos.push(res); Store.save(); App.refresh(); UI.toast('Secuencia lista');
-    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
+      c.autos.push(res); Store.save(); this._gen = false; App.refresh(); UI.toast('Secuencia lista');
+    }catch(e){ this._gen = false; prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
   }
 };
 

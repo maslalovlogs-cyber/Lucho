@@ -1,5 +1,6 @@
 import { KB } from './kb.js';
 import { Store } from './store.js';
+import { UI } from './ui.js';
 
 /* ════════════════════════════════════════════════════════════════
    MÓDULO AI — js/ai.js
@@ -40,7 +41,21 @@ const AI = {
       signal: AbortSignal.timeout(180000) // la petición no puede colgarse indefinidamente
     }).catch(e => { throw new Error(e.name === 'TimeoutError' ? 'La generación tardó demasiado; reintenta' : 'Sin conexión con el servidor'); });
     if (res.status === 401){
-      const intento = prompt('Esta instalación está protegida. Escribe la contraseña de acceso:');
+      /* Modal propio: prompt() nativo retorna null silenciosamente en
+         iframes sandboxeados (mismo problema documentado en G6). */
+      const intento = await new Promise(resolve => {
+        let resuelto = false;
+        const fin = v => { if (!resuelto){ resuelto = true; resolve(v); } };
+        UI.modal('Acceso protegido',
+          '<div class="field"><label for="passUI">Esta instalación pide una contraseña de acceso</label><input type="password" id="passUI" autocomplete="current-password"></div>' +
+          '<button class="btn pri" id="passOk" style="width:100%">Entrar</button>',
+          () => {
+            const ok = () => { const v = document.getElementById('passUI').value; UI.closeModal(); fin(v || null); };
+            document.getElementById('passOk').onclick = ok;
+            document.getElementById('passUI').addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); ok(); } });
+          },
+          () => fin(null) /* cerrado con Escape/✕/fondo */);
+      });
       if (intento){ sessionStorage.setItem('m321:pass', intento); return this.raw(system, user, schema); }
       throw new Error('Acceso no autorizado');
     }
@@ -61,7 +76,11 @@ const AI = {
      garantizado por la API → JSON.parse directo. El parseo heurístico
      queda solo como camino de compatibilidad sin schema. */
   async json(system, user, schema){
-    if (schema) return JSON.parse(await this.raw(system, user, schema));
+    if (schema){
+      const txt = await this.raw(system, user, schema);
+      try{ return JSON.parse(txt); }
+      catch(e){ throw new Error('La IA devolvió una respuesta incompleta; vuelve a intentar'); }
+    }
     let txt = await this.raw(system, user);
     try{ return this.parse(txt); }
     catch(e){

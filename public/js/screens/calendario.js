@@ -18,7 +18,7 @@ const S_Cal = {
     if (!c){ el.innerHTML = App.sinCliente(); return; }
     let html = '<div class="h-page"><div><h2>Calendario editorial</h2><p>Arrastra las piezas entre días para moverlas. El método recomienda 4–5 piezas de feed por semana en días alternados.</p></div>' +
       '<div style="display:flex;gap:8px"><div class="seg"><button id="vMes" class="' + (this.vista==='mes'?'on':'') + '">Mes</button><button id="vSem" class="' + (this.vista==='sem'?'on':'') + '">Semana</button></div>' +
-      '<button class="btn" id="bPlan" title="La IA programa la semana siguiente con la plantilla del método">Planificar semana con IA</button></div></div>' +
+      '<button class="btn" id="bPlan" title="La IA programa la semana siguiente con la plantilla del método"' + (this._gen ? ' disabled' : '') + '>Planificar semana con IA</button></div></div>' +
       '<div id="calProg"></div>' +
       '<div class="cal-head"><button class="btn sm" id="cPrev">←</button><h3 id="cTitle"></h3><button class="btn sm" id="cNext">→</button><button class="btn sm ghost" id="cHoy">Hoy</button></div>' +
       '<div id="calBody"></div>';
@@ -118,10 +118,11 @@ const S_Cal = {
     if (!c.contenidos.length){ UI.toast('Genera contenido primero: el calendario programa piezas de la biblioteca'); return; }
     const prog = document.getElementById('calProg');
     const btn = document.getElementById('bPlan'); btn.disabled = true; // G4: sin duplicados por doble clic
+    this._gen = true;
     prog.innerHTML = UI.thinking('Asignando la semana con la plantilla semanal del método…');
     try{
       const pend = c.contenidos.filter(it => !c.calendario.some(k => k.contenidoId === it.id)).slice(0, 14);
-      if (!pend.length){ prog.innerHTML = ''; btn.disabled = false; UI.toast('Todas las piezas de la biblioteca ya están programadas'); return; }
+      if (!pend.length){ this._gen = false; prog.innerHTML = ''; btn.disabled = false; UI.toast('Todas las piezas de la biblioteca ya están programadas'); return; }
       const d0 = new Date(); d0.setDate(d0.getDate() + ((8 - d0.getDay()) % 7 || 7)); // próximo lunes
       const res = await AI.json(
         AI.system(['operativo','principios'], 'Programas la semana siguiendo el calendario semanal tipo del método (lunes educativo, miércoles identidad, jueves serie/carrusel, viernes storytelling/prueba social, sábado comunidad).'),
@@ -132,8 +133,12 @@ const S_Cal = {
         const d = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + (+a.dia || 0));
         c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: this.iso(d), publicado:false });
       });
-      Store.save(); this.cursor = d0; prog.innerHTML = ''; btn.disabled = false; this.pinta(c); UI.toast('Semana planificada con la plantilla del método');
-    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
+      Store.save(); this.cursor = d0; this._gen = false;
+      /* App.refresh (no this.pinta(c)): si el usuario cambió de cliente o de
+         pantalla durante la llamada, pinta(c) mezclaría datos de dos clientes
+         o lanzaría sobre nodos inexistentes. */
+      App.refresh(); UI.toast('Semana planificada con la plantilla del método');
+    }catch(e){ this._gen = false; prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
   }
 };
 

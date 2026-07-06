@@ -12,7 +12,7 @@ Convención general: los módulos de `public/js/` son módulos ES sin framework.
 - **Cómo funciona:** `apiAI()` valida contraseña (tiempo constante) → rate limit por IP (30/10 min) → valida cuerpo y tamaños → llama a `client.messages.create` con el system cacheado (`cache_control`), `thinking` desactivado y, si llega `schema`, `output_config.format` (structured outputs: JSON garantizado). Errores del SDK se mapean a mensajes claros en español sin filtrar detalles internos.
 - **Cómo modificarlo:** modelo y límites están en constantes al inicio (`MODEL`, `MAX_TOKENS`, `VENTANA_MS`, `MAX_PETICIONES`). La CSP está en `cabecerasSeguridad()`.
 - **Cómo agregar funciones:** nuevos endpoints se añaden en el dispatcher de `http.createServer` (patrón: función async propia + validación + `json(res, ...)`). Si un endpoint nuevo muta datos, exigir `APP_PASSWORD` igual que `/api/ai`.
-- **Dependencias:** `@anthropic-ai/sdk` (única de producción), Node ≥ 20.
+- **Dependencias:** `@anthropic-ai/sdk` (única de producción), Node ≥ 22.
 - **Riesgos:** sin `APP_PASSWORD` el proxy queda abierto (solo aceptable en local). El rate limit es en memoria: se reinicia con el proceso y no se comparte entre réplicas — con más de una instancia, moverlo a Redis o al reverse proxy.
 
 ## public/js/kb.js — base de conocimiento
@@ -99,5 +99,6 @@ Patrón común: `render(el)` lee `Store.client()`, arma HTML (todo dato por `UI.
 
 - `icg.test.mjs`: especificación ejecutable del ICG (M1–M4 con casos numéricos). `npm test`.
 - `schemas.test.mjs`: valida las reglas de structured outputs en todos los schemas. `npm test`.
+- `presupuesto.test.mjs`: distribución semestral y fronteras de los niveles A/B/C. `npm test`.
 - `smoke.mjs`: end-to-end en Chromium (render, persistencia tras recarga, hash routing, modales, errores de IA legibles). Ver README para ejecutarla.
 - **Regla:** cualquier cambio en `icg.js`/`presupuesto.js`/`schemas.js` exige actualizar su test en el mismo commit.

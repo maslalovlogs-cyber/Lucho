@@ -42,8 +42,10 @@ const UI = {
   /* Fase 6 (accesibilidad): role=dialog + aria-modal, el foco entra al
      abrir y vuelve a su origen al cerrar, Escape cierra y Tab queda
      atrapado dentro del modal. */
-  modal(title, bodyHTML, onMount){
+  _onClose: null,
+  modal(title, bodyHTML, onMount, onClose){
     const host = document.getElementById('modalHost');
+    UI._onClose = onClose || null;
     UI._focoPrevio = document.activeElement;
     host.innerHTML = '<div class="modal-bg" id="mBg"><div class="modal" role="dialog" aria-modal="true" aria-label="' + this.esc(title) + '"><div class="card-h"><h3>' + this.esc(title) +
       '</h3><button class="x" id="mX" aria-label="Cerrar">✕</button></div><div class="card-b" id="mBody">' + bodyHTML + '</div></div></div>';
@@ -65,6 +67,7 @@ const UI = {
   },
   closeModal(){
     document.getElementById('modalHost').innerHTML = '';
+    if (UI._onClose){ const f = UI._onClose; UI._onClose = null; f(); }
     if (UI._teclasModal){ document.removeEventListener('keydown', UI._teclasModal); UI._teclasModal = null; }
     if (UI._focoPrevio && UI._focoPrevio.focus){ UI._focoPrevio.focus(); }
     UI._focoPrevio = null;

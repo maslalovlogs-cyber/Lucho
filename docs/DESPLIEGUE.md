@@ -1,6 +1,6 @@
 # 321 OS — Guía de despliegue
 
-La app es un único proceso Node sin base de datos (los datos viven en el navegador de cada usuario). Cualquier hosting que corra Node 20+ o un contenedor sirve.
+La app es un único proceso Node sin base de datos (los datos viven en el navegador de cada usuario). Cualquier hosting que corra Node 22+ o un contenedor sirve.
 
 ## Variables de entorno
 

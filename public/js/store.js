@@ -57,8 +57,8 @@ const Store = {
   etapaDe(mes){ return mes <= 3 ? 1 : (mes <= 5 ? 2 : 3); },
 
   async load(){
+    let raw = null;
     try{
-      let raw = null;
       if (typeof indexedDB !== 'undefined'){
         raw = await idbGet(DATA_KEY);
         // migración desde localStorage si IDB está vacío pero hubo datos previos
@@ -67,7 +67,10 @@ const Store = {
           await idbSet(DATA_KEY, raw);
         }
         this.persistente = true;
-      } else if (typeof localStorage !== 'undefined'){
+      }
+    }catch(e){ /* IDB presente pero roto (modo privado, cuota…): degradar */ }
+    try{
+      if (raw == null && typeof localStorage !== 'undefined'){
         raw = localStorage.getItem(DATA_KEY);
         this.persistente = true;
       }
@@ -79,6 +82,7 @@ const Store = {
       G3: además blinda cada pieza del banco (icg numérico, métricas objeto)
       para que un respaldo corrupto no pueda romper el render. */
   normaliza(){
+    let descartes = 0;
     const d = this.data;
     if (!Array.isArray(d.clients)) d.clients = [];
     d.clients = d.clients.filter(c => c && typeof c === 'object');
@@ -96,9 +100,16 @@ const Store = {
         if (!b.metricas || typeof b.metricas !== 'object') b.metricas = {};
       });
       // Las gráficas y el borrado usan `semana` como clave: fuera filas sin fecha
+      const antesM = c.metricas.length;
       c.metricas = c.metricas.filter(m => m && typeof m.semana === 'string' && m.semana);
+      // El calendario filtra por fecha exacta: una entrada sin fecha sería un
+      // fantasma invisible e imborrable (cura datos viejos con ese estado)
+      const antesC = c.calendario.length;
+      c.calendario = c.calendario.filter(k => k && typeof k.fecha === 'string' && k.fecha);
+      descartes += (antesM - c.metricas.length) + (antesC - c.calendario.length);
     });
     if (d.activeId && !d.clients.some(c => c.id === d.activeId)) d.activeId = d.clients.length ? d.clients[0].id : null;
+    return descartes;
   },
   /** G3: comprobación mínima de que el JSON tiene forma de respaldo de 321 OS. */
   esRespaldoValido(obj){
@@ -120,15 +131,19 @@ const Store = {
     this._pendiente = false;
     clearTimeout(this._t);
     const json = JSON.stringify(this.data);
+    /* Espejo síncrono: localStorage escribe de inmediato, así el volcado en
+       pagehide queda garantizado aunque la escritura async de IDB no llegue
+       a completarse antes de que el navegador descargue la página. */
+    let espejoOK = false;
+    try{ if (typeof localStorage !== 'undefined'){ localStorage.setItem(DATA_KEY, json); espejoOK = true; } }catch(e){ /* cuota LS: IDB sigue siendo el principal */ }
     try{
       if (typeof indexedDB !== 'undefined'){ await idbSet(DATA_KEY, json); }
-      else if (typeof localStorage !== 'undefined'){ localStorage.setItem(DATA_KEY, json); }
-      else { throw new Error('sin almacenamiento'); }
+      else if (!espejoOK){ throw new Error('sin almacenamiento'); }
       this.persistente = true;
       UI.saveDot('Guardado ✓', true);
     }catch(e){
-      this.persistente = false;
-      UI.saveDot('Solo en memoria — exporta tus datos');
+      if (espejoOK){ this.persistente = true; UI.saveDot('Guardado ✓', true); } // IDB roto pero LS funcionó
+      else { this.persistente = false; UI.saveDot('Solo en memoria — exporta tus datos'); }
     }
   },
   exportar(){
@@ -149,7 +164,10 @@ const Store = {
       catch(e){ UI.toast('El archivo no es un JSON válido'); return; }
       if (!Store.esRespaldoValido(obj)){ UI.toast('El archivo no es un respaldo de 321 OS'); return; }
       const aplicar = () => {
-        Store.data = obj; Store.normaliza(); Store.save(); App.refresh(); UI.toast('Datos importados');
+        Store.data = obj;
+        const n = Store.normaliza();
+        Store.save(); App.refresh();
+        UI.toast('Datos importados' + (n ? ' · ' + n + ' registro(s) sin fecha descartado(s)' : ''));
       };
       const actuales = Store.data.clients.length;
       if (actuales > 0){

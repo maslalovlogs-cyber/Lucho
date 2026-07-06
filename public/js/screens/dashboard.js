@@ -23,7 +23,7 @@ const S_Dash = {
     const delta = (a,b) => (a != null && b != null && b !== 0) ? Math.round((a - b) / b * 100) : null;
 
     let html = '<div class="h-page"><div><h2>Dashboard</h2><p>Ritual de los viernes: registrar métricas, calcular ICG, clasificar, decidir réplicas. La disciplina de este ritual es la diferencia entre una agencia que opina y una que sabe.</p></div>' +
-      '<div style="display:flex;gap:8px"><button class="btn" id="bSem">+ Registrar semana</button><button class="btn pri" id="bAn" ' + (M.length ? '' : 'disabled') + '>Análisis del estratega</button></div></div>';
+      '<div style="display:flex;gap:8px"><button class="btn" id="bSem">+ Registrar semana</button><button class="btn pri" id="bAn" ' + ((M.length && !this._gen) ? '' : 'disabled') + '>Análisis del estratega</button></div></div>';
 
     const kpi = (lbl, val, sub, d) => '<div class="card kpi"><div class="lbl">' + lbl + '</div><div class="val">' + val + '</div><div class="sub">' +
       (d != null ? '<span style="color:' + (d >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (d >= 0 ? '▲' : '▼') + ' ' + Math.abs(d) + '%</span> vs semana previa' : (sub || '')) + '</div></div>';
@@ -94,19 +94,24 @@ const S_Dash = {
     const A = [];
     if (prev.alcance > 0 && last.alcance > 0 && last.alcance < prev.alcance * 0.6)
       A.push({ i:'!', c:'red', t:'El alcance cayó más de 40%', p:'Si se repite una segunda semana: auditoría completa — originalidad, engagement bait, consistencia temática y cambios de algoritmo (§12.8).' });
-    if (last.alcance > 0 && last.retencion > 0 && last.retencion < 35)
+    if (last.alcance > 0 && last.retencion > 0 && last.retencion < 35 && (!(prev.alcance > 0) || last.alcance >= prev.alcance * 0.9))
       A.push({ i:'▲', c:'amber', t:'Alto alcance, baja retención', p:'El gancho promete y el cuerpo no cumple: sube densidad, pattern interrupts cada 3–5 s y cumple la promesa del gancho.' });
+    if (prev.alcance > 0 && last.alcance < prev.alcance * 0.8 && last.retencion >= 50)
+      A.push({ i:'▼', c:'amber', t:'Baja distribución con alta retención', p:'El cuerpo funciona pero el gancho no abre la puerta: prueba 3 ganchos distintos sobre el mismo cuerpo (§12.7).' });
     if (last.alcance > 0 && (last.interaccion||0) / last.alcance > 0.05 && (last.conversiones||0) === 0 && Store.etapaDe(c.mes) >= 2)
       A.push({ i:'→', c:'blue', t:'Engagement alto, cero ventas', p:'Falta el puente de conversión: CTA de palabra clave + DM automatizado + oferta clara (§12.7).' });
     if (prev.seguidores > 0 && last.seguidores > prev.seguidores && prev.alcance > 0 && last.alcance < prev.alcance)
       A.push({ i:'◇', c:'amber', t:'Seguidores suben, alcance baja', p:'El contenido gusta al círculo actual pero no descubre: aumenta formatos de descubrimiento (POV, ranking, tendencia adaptada).' });
-    if (icgProm != null && icgProm < 0.9 && c.banco.length >= 6)
-      A.push({ i:'ICG', c:'red', t:'ICG promedio bajo con muestra suficiente', p:'Si tras 6 semanas ninguna pieza supera 1.2, el problema no es el formato: reabrir pilares y propuesta de valor con el cliente (§12.8).' });
+    const fechasBanco = c.banco.map(b => b.fecha).filter(Boolean).sort();
+    const seisSemanas = c.banco.length >= 6 && fechasBanco.length >= 2 &&
+      (new Date(fechasBanco[fechasBanco.length - 1]) - new Date(fechasBanco[0])) / 86400000 >= 42;
+    if (seisSemanas && !c.banco.some(b => b.icg > 1.2))
+      A.push({ i:'ICG', c:'red', t:'6 semanas sin ninguna pieza con ICG > 1.2', p:'Regla de intervención del método: el problema no es el formato — reabrir pilares y propuesta de valor con el cliente (§12.8).' });
     if (last.gasto > 0 && last.dms > 0 && (last.conversiones||0) / last.dms < 0.1 && Store.etapaDe(c.mes) === 3)
       A.push({ i:'%', c:'amber', t:'Conversión DM→venta por debajo de 10%', p:'Con tráfico sano, el problema es la oferta o el cierre: revisa oferta (bonus stack), precio ancla y speed-to-lead <5 min.' });
-    const pub = c.calendario.filter(k => k.publicado).length;
-    if (pub > 0 && c.banco.length < pub)
-      A.push({ i:'✎', c:'blue', t:(pub - c.banco.length) + ' pieza(s) publicadas sin registrar', p:'Sin registro no hubo prueba: captura sus métricas en el Banco a las 72 h y 7 días.' });
+    const sinRegistrar = c.calendario.filter(k => k.publicado && !c.banco.some(b => b.calId === k.id)).length;
+    if (sinRegistrar > 0)
+      A.push({ i:'✎', c:'blue', t: sinRegistrar + ' pieza(s) publicadas sin registrar', p:'Sin registro no hubo prueba: captura sus métricas en el Banco a las 72 h y 7 días.' });
     return A;
   },
   formulario(c){
@@ -136,14 +141,16 @@ const S_Dash = {
   },
   async analizar(c){
     const box = document.getElementById('anBox');
+    const btn = document.getElementById('bAn'); btn.disabled = true; // G4
+    this._gen = true;
     box.innerHTML = UI.thinking('Leyendo métricas con las tablas de diagnóstico del método…');
     try{
       const txt = await AI.raw(
         AI.system(['operativo','icg','principios'], 'Analizas el dashboard como estratega senior. Estructura tu respuesta en 3 bloques breves titulados DIAGNÓSTICO, ACCIÓN DE LA SEMANA y RIESGO, cada uno de 2-3 frases, aplicando el diagnóstico por síntoma y las reglas de intervención. Nada genérico: usa los números reales.', true),
         AI.clienteCtx(c) + '\nMétricas semanales: ' + JSON.stringify(c.metricas.slice(-6)) +
         '\nBanco (título, icg): ' + JSON.stringify(c.banco.map(b => [b.titulo, b.icg]).slice(-10)));
-      c.analisis = txt.trim(); Store.save(); App.refresh();
-    }catch(e){ box.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; }
+      c.analisis = txt.trim(); this._gen = false; Store.save(); App.refresh();
+    }catch(e){ this._gen = false; box.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
   }
 };
 

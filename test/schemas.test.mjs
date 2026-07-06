@@ -7,8 +7,11 @@ import * as S from '../public/js/schemas.js';
 
 const NO_SOPORTADO = ['minimum', 'maximum', 'multipleOf', 'minLength', 'maxLength', 'minItems', 'maxItems', 'pattern', '$ref'];
 
+const TIPOS = ['object', 'array', 'string', 'integer', 'number', 'boolean'];
+
 function revisa(nodo, ruta){
-  if (!nodo || typeof nodo !== 'object') return;
+  assert.ok(nodo && typeof nodo === 'object' && !Array.isArray(nodo), ruta + ' no es un nodo de schema');
+  assert.ok(TIPOS.includes(nodo.type), ruta + ' sin "type" válido (tiene: ' + nodo.type + ')');
   for (const k of NO_SOPORTADO){
     assert.ok(!(k in nodo), ruta + ' usa "' + k + '" (no soportado por structured outputs)');
   }

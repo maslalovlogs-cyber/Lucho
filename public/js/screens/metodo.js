@@ -51,7 +51,7 @@ const S_Metodo = {
       Store.data.kbNotes = document.getElementById('kbNotas').value; Store.save(); UI.toast('Notas guardadas');
     };
     document.getElementById('bExp').onclick = () => Store.exportar();
-    document.getElementById('bImp').onchange = e => { if (e.target.files[0]) Store.importar(e.target.files[0]); };
+    document.getElementById('bImp').onchange = e => { if (e.target.files[0]) Store.importar(e.target.files[0]); e.target.value = ''; };
     el.querySelectorAll('[data-tog]').forEach(b => b.onclick = () => {
       const m = Store.data.modules.find(x => x.id === b.dataset.tog);
       m.activo = m.activo === false ? true : false; Store.save(); App.refresh();

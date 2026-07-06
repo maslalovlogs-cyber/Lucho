@@ -36,6 +36,10 @@ const ICG = {
     const prev = banco.filter(p => p.id !== pieza.id).slice(-15).map(p => this.ratios(p.metricas));
     const r = this.ratios(pieza.metricas);
     const med = k => this.mediana(prev.map(p => p[k]));
+    /* Borde no definido por el método: con mediana 0 (p. ej. cuenta donde
+       casi nadie convierte aún) el ratio queda NEUTRO (1) — también para la
+       pieza que sí convierte. Cambiar esta convención es decisión del dueño
+       del método, no de código. */
     const ratio = k => { const m = med(k); return m > 0 ? r[k] / m : 1; };
     let icg;
     if (modoVenta){

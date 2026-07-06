@@ -18,7 +18,7 @@ const S_Estrategia = {
     if (!c){ el.innerHTML = App.sinCliente(); return; }
     const tieneDx = !!c.diagnostico;
     let html = '<div class="h-page"><div><h2>Estrategia de 6 meses</h2><p>Roadmap completo del semestre: Reconocimiento (3) → Consideración (2) → Conversión (1), con objetivos, KPI, cronograma, tareas y presupuesto.</p></div>' +
-      '<button class="btn pri" id="bGen" ' + (tieneDx ? '' : 'disabled title="Genera primero el diagnóstico"') + '>' + (c.estrategia.e1 ? 'Regenerar estrategia' : 'Generar estrategia') + '</button></div>';
+      '<button class="btn pri" id="bGen" ' + ((tieneDx && !this._gen) ? '' : 'disabled ') + (tieneDx ? '' : 'title="Genera primero el diagnóstico"') + '>' + (c.estrategia.e1 ? 'Regenerar estrategia' : 'Generar estrategia') + '</button></div>';
     if (!tieneDx) html += '<div class="note">El método exige diagnóstico antes de estrategia (Semana 0 → configuración de la Matriz). <b>Genera primero el diagnóstico.</b></div>';
     html += '<div id="esProg"></div>';
 
@@ -64,7 +64,8 @@ const S_Estrategia = {
   },
   async generar(c){
     const prog = document.getElementById('esProg');
-    document.getElementById('bGen').disabled = true;
+    const btn = document.getElementById('bGen'); btn.disabled = true;
+    this._gen = true;
     const defs = [
       { k:'e1', kb:['principios','etapa1','ab','operativo'], label:'Etapa 1 · Reconocimiento (meses 1–3)', extra:'Cronograma con 3 filas: "Mes 1 · Exploración", "Mes 2 · Iteración", "Mes 3 · Validación".' },
       { k:'e2', kb:['principios','etapa2','operativo'], label:'Etapa 2 · Consideración (meses 4–5)', extra:'Cronograma con 2 filas: "Mes 4" y "Mes 5" (optimización, influencers según presupuesto, UGC y prueba social).' },
@@ -79,10 +80,12 @@ const S_Estrategia = {
           '\nDevuelve JSON: {"mision":str máx 25 palabras,"objetivos":[3 str medibles y específicos de este negocio],"kpi":[3-4 str con metas numéricas del método],"cronograma":[{"periodo":str,"foco":str máx 10 palabras,"acciones":[2-3 str cortos]}],"tareas":[3-4 str operativas],"pauta":str máx 25 palabras sobre cómo usar el presupuesto de la etapa}', ETAPA);
         Store.save();
       }
+      this._gen = false;
       App.refresh(); UI.toast('Estrategia de 6 meses lista');
     }catch(e){
+      this._gen = false;
       prog.innerHTML = '<div class="warn">Error al generar: ' + UI.esc(e.message) + '. Vuelve a intentar (lo ya generado quedó guardado).</div>';
-      document.getElementById('bGen').disabled = false;
+      btn.disabled = false; // referencia capturada: getElementById aquí fallaría tras navegar (y 'bGen' existe en otra pantalla)
     }
   }
 };

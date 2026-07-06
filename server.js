@@ -147,6 +147,9 @@ async function apiAI(req, res){
        con esa forma exacta — adiós al parseo heurístico del original. */
     if (schema) peticion.output_config = { format: { type: 'json_schema', schema } };
     const msg = await client.messages.create(peticion);
+    if (msg.stop_reason === 'max_tokens'){
+      return json(res, 502, { error: 'La respuesta de IA se cortó por longitud; reintenta (si persiste, pide menos elementos)' });
+    }
     const text = (msg.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n');
     return json(res, 200, { text });
   }catch(e){
@@ -161,7 +164,9 @@ async function apiAI(req, res){
 }
 
 async function estatico(req, res){
-  const urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+  let urlPath;
+  try{ urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname); }
+  catch(e){ return json(res, 400, { error: 'Ruta inválida' }); } // %zz malformado lanzaba URIError y tumbaba el proceso
   const rel = urlPath === '/' ? 'index.html' : urlPath.slice(1);
   const abs = path.resolve(ROOT, rel);
   if (!abs.startsWith(ROOT + path.sep) && abs !== path.join(ROOT, 'index.html')){
@@ -173,10 +178,12 @@ async function estatico(req, res){
     const headers = { 'Content-Type': MIME[ext] || 'application/octet-stream' };
     if (CACHE[ext]) headers['Cache-Control'] = CACHE[ext];
     /* Fase 7: gzip para texto (el JS+CSS de la app pasa de ~95 KB a ~25 KB) */
-    if (COMPRIMIBLE.has(ext) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')){
-      data = gzipSync(data);
-      headers['Content-Encoding'] = 'gzip';
-      headers['Vary'] = 'Accept-Encoding';
+    if (COMPRIMIBLE.has(ext)){
+      headers['Vary'] = 'Accept-Encoding'; // siempre: la respuesta varía aunque esta sea identidad
+      if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')){
+        data = gzipSync(data);
+        headers['Content-Encoding'] = 'gzip';
+      }
     }
     res.writeHead(200, headers);
     res.end(data);
@@ -187,9 +194,12 @@ async function estatico(req, res){
 
 const server = http.createServer((req, res) => {
   cabecerasSeguridad(res);
-  if (req.method === 'POST' && req.url === '/api/ai') return apiAI(req, res);
-  if (req.method === 'GET' || req.method === 'HEAD') return estatico(req, res);
-  json(res, 405, { error: 'Método no permitido' });
+  const falla = e => { console.error('[server]', e); if (!res.headersSent) json(res, 500, { error: 'Error interno' }); else res.end(); };
+  try{
+    if (req.method === 'POST' && req.url === '/api/ai') return apiAI(req, res).catch(falla);
+    if (req.method === 'GET' || req.method === 'HEAD') return estatico(req, res).catch(falla);
+    json(res, 405, { error: 'Método no permitido' });
+  }catch(e){ falla(e); }
 });
 
 server.listen(PORT, () => {

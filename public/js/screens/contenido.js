@@ -25,7 +25,7 @@ const S_Contenido = {
       '<div class="field"><label for="gFmt">Formato</label><select id="gFmt">' + this.FORMATOS.map(f => '<option>' + UI.esc(f) + '</option>').join('') + '</select></div>' +
       '<div class="field"><label for="gPlat">Plataforma</label><select id="gPlat"><option>La primaria del cliente</option><option>Instagram</option><option>TikTok</option><option>Facebook</option></select></div>' +
       '<div class="field"><label for="gN">Piezas</label><select id="gN"><option>2</option><option>3</option></select></div>' +
-      '<div class="field"><button class="btn pri" id="bGenC" style="width:100%">Generar ideas</button></div>' +
+      '<div class="field"><button class="btn pri" id="bGenC" style="width:100%"' + (this._gen ? ' disabled' : '') + '>Generar ideas</button></div>' +
       '</div><div id="cProg"></div>' +
       '<p style="font-size:11.5px;color:var(--faint)">El generador respeta el mix de la etapa actual (mes ' + c.mes + ' → Etapa ' + Store.etapaDe(c.mes) + '), la biblioteca de formatos del método y las prácticas prohibidas. No repite ideas ya generadas (' + c.historial.length + ' en el historial).</p>' +
       '</div></div>';
@@ -67,6 +67,7 @@ const S_Contenido = {
   async generar(c){
     const prog = document.getElementById('cProg');
     const btn = document.getElementById('bGenC'); btn.disabled = true;
+    this._gen = true;
     const pilar = document.getElementById('gPilar').value, fmt = document.getElementById('gFmt').value,
           plat = document.getElementById('gPlat').value, n = +document.getElementById('gN').value;
     try{
@@ -75,7 +76,7 @@ const S_Contenido = {
          que devuelve el lote entero con salida estructurada. */
       prog.innerHTML = UI.thinking('Diseñando ' + n + ' piezas con las estructuras del método…');
       const res = await AI.json(
-        AI.system(['principios','algoritmos','formatos','evitar','operativo'], 'Diseñas un lote de piezas de contenido listas para producir.'),
+        AI.system(['principios','algoritmos','formatos','evitar','prohibido','operativo'], 'Diseñas un lote de piezas de contenido listas para producir.'),
         AI.clienteCtx(c) +
         '\nPedido: ' + n + ' piezas distintas entre sí. Pilar: ' + pilar + '. Formato: ' + fmt + '. Plataforma: ' + plat + '.' +
         (c.historial.length ? '\nNO repitas ninguna de estas ideas ya usadas: ' + JSON.stringify(c.historial.slice(-40)) : '') +
@@ -87,8 +88,10 @@ const S_Contenido = {
         c.contenidos.push(it); c.historial.push(it.titulo);
       });
       Store.save();
+      this._gen = false;
       App.refresh(); UI.toast((res.piezas || []).length + ' piezas nuevas en la biblioteca');
     }catch(e){
+      this._gen = false;
       App.refresh();
       UI.toast('Error al generar: ' + e.message);
     }
@@ -99,7 +102,10 @@ const S_Contenido = {
     UI.modal('Programar pieza', '<div class="field"><label for="pFecha">Fecha de publicación</label><input type="date" id="pFecha" value="' + hoy + '"></div>' +
       '<button class="btn pri" id="pOk" style="width:100%">Agregar al calendario</button>', () => {
       document.getElementById('pOk').onclick = () => {
-        c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: document.getElementById('pFecha').value, publicado: false });
+        const f = document.getElementById('pFecha').value;
+        // Sin fecha, la entrada sería un fantasma invisible en el calendario
+        if (!f){ UI.toast('Indica la fecha de publicación'); return; }
+        c.calendario.push({ id: Store.uid(), contenidoId: it.id, titulo: it.titulo, formato: it.formato, pilar: it.pilar, fecha: f, publicado: false });
         Store.save(); UI.closeModal(); UI.toast('Programado'); App.go('cal');
       };
     });

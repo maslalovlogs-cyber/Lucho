@@ -18,7 +18,7 @@ const S_Ads = {
     const mesPct = DIST_SEMESTRAL[c.mes - 1];
     const ganadores = c.banco.filter(b => b.icg >= 1.2);
     let html = '<div class="h-page"><div><h2>Publicidad</h2><p>La pauta amplifica lo validado: solo corren creativos con ICG ≥ 1.2 o derivados directos. Si un anuncio muere, se vuelve al Banco, no al brainstorming.</p></div>' +
-      '<button class="btn pri" id="bCamp">Diseñar campaña del mes</button></div>';
+      '<button class="btn pri" id="bCamp"' + (this._gen ? ' disabled' : '') + '>Diseñar campaña del mes</button></div>';
 
     html += '<div class="grid3" style="margin-bottom:18px">' +
       '<div class="card kpi"><div class="lbl">Nivel de presupuesto</div><div class="val" style="font-size:19px">' + (nivel || 'Sin definir') + '</div><div class="sub">' + (p ? UI.fmtMoney(p) + ' / mes' : 'captura el presupuesto en la ficha') + '</div></div>' +
@@ -55,6 +55,7 @@ const S_Ads = {
   async generar(c){
     const prog = document.getElementById('adProg');
     const btn = document.getElementById('bCamp'); btn.disabled = true; // G4: sin duplicados por doble clic
+    this._gen = true;
     prog.innerHTML = UI.thinking('Diseñando la campaña del mes ' + c.mes + ' según etapa y nivel de presupuesto…');
     try{
       const ganadores = c.banco.filter(b => b.icg >= 1.2).map(b => b.titulo + ' (ICG ' + b.icg.toFixed(2) + ')');
@@ -63,8 +64,8 @@ const S_Ads = {
         AI.clienteCtx(c) + '\nMes del programa: ' + c.mes + '. Creativos ganadores disponibles: ' + (ganadores.length ? JSON.stringify(ganadores) : 'ninguno aún (respeta el Principio 1: sin ICG ≥ 1.2 no hay prospección con presupuesto significativo)') +
         '\nDevuelve JSON: {"nombre":str nombre de la campaña del mes,"objetivo":str máx 15 palabras,"presupuesto":str cómo se reparte el monto del mes,"campanas":[2-4 objetos {"nombre":str,"objetivoPlataforma":str p.ej. interacción/video views/conversiones,"audiencia":str específica,"pct":str "40%","creativo":str qué pieza o derivado,"kpi":str meta numérica}],"remarketing":str máx 30 palabras públicos por temperatura y secuencia,"reglas":str máx 25 palabras (frecuencia, rotación, cuándo apagar)}', CAMPANA);
       res.id = Store.uid(); res.mes = c.mes;
-      c.campanas.push(res); Store.save(); App.refresh(); UI.toast('Campaña del mes diseñada');
-    }catch(e){ prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
+      c.campanas.push(res); Store.save(); this._gen = false; App.refresh(); UI.toast('Campaña del mes diseñada');
+    }catch(e){ this._gen = false; prog.innerHTML = '<div class="warn">Error: ' + UI.esc(e.message) + '</div>'; btn.disabled = false; }
   }
 };
 

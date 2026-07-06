@@ -22,7 +22,7 @@ const S_Dx = {
     if (!c){ el.innerHTML = App.sinCliente(); return; }
     const d = c.diagnostico;
     let html = '<div class="h-page"><div><h2>Diagnóstico</h2><p>Análisis del negocio con las lentes del método: FODA, buyer persona, mapa de empatía, niveles y configuración de la Matriz de Adaptación.</p></div>' +
-      '<button class="btn pri" id="bGen">' + (d ? 'Regenerar diagnóstico' : 'Generar diagnóstico') + '</button></div>';
+      '<button class="btn pri" id="bGen"' + (this._gen ? ' disabled' : '') + '>' + (d ? 'Regenerar diagnóstico' : 'Generar diagnóstico') + '</button></div>';
 
     const falta = this.faltantes(c);
     if (falta.length) html += '<div class="warn"><b>Ficha incompleta:</b> falta ' + falta.join(', ') + '. Puedes generar igual — la IA marcará sus supuestos y hará preguntas inteligentes.</div>';
@@ -94,6 +94,7 @@ const S_Dx = {
   async generar(c){
     const prog = document.getElementById('dxProg');
     const btn = document.getElementById('bGen'); btn.disabled = true;
+    this._gen = true; // sobrevive a re-renders: render() respeta este flag
     const falta = this.faltantes(c);
     try{
       prog.innerHTML = UI.thinking('Paso 1/3 · FODA, dolores, deseos y objeciones…');
@@ -108,12 +109,14 @@ const S_Dx = {
         '\nDevuelve JSON: {"persona":{"nombre":str,"edad":str,"ocupacion":str,"contexto":str máx 30 palabras,"dolorPrincipal":str,"motivacion":str,"canales":str},"empatia":{"piensaSiente":str,"ve":str,"oye":str,"diceHace":str,"esfuerzos":str,"resultados":str}}. Cada campo de empatía máx 15 palabras.', DX2);
       prog.innerHTML = UI.thinking('Paso 3/3 · Niveles, probabilidad y Matriz de Adaptación…');
       const p3 = await AI.json(
-        AI.system(['principios','matriz','algoritmos'], 'Cierras el diagnóstico configurando la Matriz de Adaptación del método para este negocio.'),
+        AI.system(['principios','matriz','algoritmos','etapa1'], 'Cierras el diagnóstico configurando la Matriz de Adaptación del método para este negocio.'),
         AI.clienteCtx(c) +
         '\nDevuelve JSON: {"niveles":{"competencia":0-10,"autoridad":0-10,"contenido":0-10,"marca":0-10,"ventas":0-10,"confianza":0-10},"probabilidad":40-95,"probabilidadNota":str máx 22 palabras justificando,"matriz":{"plataformaPrimaria":str,"plataformaSecundaria":str,"pilares":[4 pilares concretos para ESTE negocio],"ctaPrincipal":str,"cicloVenta":str,"particularidades":str máx 25 palabras (regulación, ética, estacionalidad si aplica)}}', DX3);
       c.diagnostico = Object.assign({}, p1, p2, p3);
+      this._gen = false;
       Store.save(); App.refresh(); UI.toast('Diagnóstico generado con el Método 3·2·1');
     }catch(e){
+      this._gen = false;
       prog.innerHTML = '<div class="warn">No se pudo completar el diagnóstico: ' + UI.esc(e.message) + '. Intenta de nuevo.</div>';
       btn.disabled = false;
     }

@@ -67,10 +67,12 @@ t('M1 · el ICG es determinista respecto al estado previo (fijado al registrar, 
   const icgAlRegistrar = ICG.calc(previas, nueva, false);
   // llegan 5 piezas posteriores muy superiores…
   const posteriores = previas.concat([nueva], Array.from({ length: 5 }, () => pieza(M(9000, 90, 200, 200, 400, 90, 90, 0))));
-  // …y el ICG calculado con el MISMO estado previo no cambia:
+  // …recalcular contra el banco inflado daría OTRO valor (más bajo):
+  const conPosteriores = ICG.calc(posteriores, nueva, false);
+  assert.notEqual(conPosteriores, icgAlRegistrar, 'el recálculo retroactivo cambiaría la historia — por eso el ICG se fija al registrar');
+  assert.ok(conPosteriores < icgAlRegistrar, 'contra un banco inflado el ICG caería');
+  // la pantalla Banco cumple el contrato pasando SIEMPRE el estado previo:
   assert.equal(ICG.calc(previas, nueva, false), icgAlRegistrar);
-  // (la pantalla Banco ya no recalcula: pasa siempre el estado previo al registro)
-  assert.notEqual(ICG.calc(posteriores, nueva, false), undefined);
 });
 
 /* ── M4: Regla de 3 según la letra del método ── */

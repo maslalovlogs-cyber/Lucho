@@ -2,7 +2,7 @@
 
 ## Comandos
 - `npm start` — servidor en http://localhost:3000 (lee `.env` si existe)
-- `npm test` — unitarias (ICG + schemas, sin dependencias)
+- `npm test` — unitarias (ICG + schemas + presupuesto, sin dependencias)
 - Smoke e2e: ver README § Pruebas (Playwright + Chromium)
 
 ## Arquitectura en una línea

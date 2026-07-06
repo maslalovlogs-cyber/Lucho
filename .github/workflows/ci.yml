@@ -11,14 +11,32 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - name: Instalar dependencias
         run: npm ci
-      - name: Sintaxis de todos los módulos
+      - name: Sintaxis de todos los módulos (incluidos los tests)
         run: |
-          for f in server.js public/js/*.js public/js/screens/*.js; do
+          for f in server.js public/js/*.js public/js/screens/*.js test/*.mjs; do
             node --check "$f"
           done
       - name: Pruebas unitarias (ICG, schemas, presupuesto)
         run: npm test
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Instalar Chromium de Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Prueba de humo end-to-end
+        run: |
+          PORT=3113 node server.js &
+          sleep 1
+          node test/smoke.mjs

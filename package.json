@@ -9,9 +9,12 @@
     "test": "node test/icg.test.mjs && node test/schemas.test.mjs && node test/presupuesto.test.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.9"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.110.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
   }
 }
