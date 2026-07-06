@@ -44,7 +44,7 @@ docs/DESPLIEGUE.md         Guía de despliegue (Docker, VPS, checklist)
 ## Pruebas
 
 ```bash
-npm test                              # unitarias del ICG (M1–M4 del método, sin dependencias)
+npm test                              # unitarias: ICG (M1–M4), schemas y presupuesto — sin dependencias
 
 # Prueba de humo end-to-end (requiere Chromium):
 npm i --no-save playwright
@@ -67,4 +67,4 @@ La prueba de humo verifica: render de las 10 pantallas, creación de cliente, **
 | 7. Rendimiento (fuentes locales, gzip, caché HTTP) | ✅ |
 | 8. Seguridad (CSP, rate limit, timing-safe) | ✅ |
 | 9. Documentación (docs/, Dockerfile, CLAUDE.md) | ✅ |
-| 10. Pruebas y CI | pendiente |
+| 10. Pruebas y CI (GitHub Actions) | ✅ |

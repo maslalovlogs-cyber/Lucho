@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node test/icg.test.mjs && node test/schemas.test.mjs"
+    "test": "node test/icg.test.mjs && node test/schemas.test.mjs && node test/presupuesto.test.mjs"
   },
   "engines": {
     "node": ">=20"

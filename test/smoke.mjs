@@ -55,6 +55,15 @@ await page.waitForSelector('#dxProg .warn', { timeout: 5000 });
 const warn = await page.locator('#dxProg .warn').textContent();
 ok(warn.includes('ANTHROPIC_API_KEY'), 'error de IA legible para el usuario: "' + warn.slice(0, 80) + '…"');
 
+// 6. Recorrido completo: las 10 pantallas renderizan sin excepciones
+const TITULOS = { cli:'Clientes', dx:'Diagnóstico', est:'Estrategia 6 meses', con:'Contenido', cal:'Calendario', ban:'Banco de Ganadores', ads:'Publicidad', aut:'Automatizaciones', dash:'Dashboard', kb:'Método y actualizaciones' };
+let recorridoOK = true;
+for (const [id, titulo] of Object.entries(TITULOS)){
+  await page.click('[data-go="' + id + '"]');
+  if ((await page.locator('#crumb').textContent()) !== titulo) recorridoOK = false;
+}
+ok(recorridoOK, 'recorrido de las 10 pantallas con el título correcto');
+
 ok(errores.length === 0, 'sin errores de consola/página' + (errores.length ? ' → ' + errores.join(' | ') : ''));
 
 await browser.close();
