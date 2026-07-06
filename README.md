@@ -33,6 +33,8 @@ public/
 legacy/index.original.html Versión monolítica original (línea base de la auditoría)
 test/smoke.mjs             Prueba de humo end-to-end (Playwright)
 AUDITORIA.md               Auditoría técnica completa (Fase 1)
+docs/MODULOS.md            Documentación por módulo (qué hace, cómo extender, riesgos)
+docs/DESPLIEGUE.md         Guía de despliegue (Docker, VPS, checklist)
 ```
 
 - **Datos:** viven en el navegador (IndexedDB), por dispositivo. Respaldo manual en la pantalla **Método → Datos** (exportar/importar JSON). La migración a base de datos multiusuario está prevista en el roadmap.
@@ -64,4 +66,5 @@ La prueba de humo verifica: render de las 10 pantallas, creación de cliente, **
 | 6. UX/UI y accesibilidad | ✅ |
 | 7. Rendimiento (fuentes locales, gzip, caché HTTP) | ✅ |
 | 8. Seguridad (CSP, rate limit, timing-safe) | ✅ |
-| 9–10. Documentación · Pruebas | pendientes |
+| 9. Documentación (docs/, Dockerfile, CLAUDE.md) | ✅ |
+| 10. Pruebas y CI | pendiente |
